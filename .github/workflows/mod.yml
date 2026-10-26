@@ -1,0 +1,56 @@
+name: Rift-Mod bauen
+on:
+  workflow_dispatch:
+  push:
+    paths: ['mod-src/**', '.github/workflows/mod.yml']
+permissions:
+  contents: write
+jobs:
+  fabric:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mc: ['1.21.11']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - name: Fabric-Vorlage für ${{ matrix.mc }} holen (liefert die passenden Versionen)
+        run: git clone --depth 1 --branch ${{ matrix.mc }} https://github.com/FabricMC/fabric-example-mod tpl
+      - name: Rift-Code einsetzen
+        run: |
+          cd tpl
+          rm -rf src
+          mkdir -p src/main/java src/main/resources
+          cp -r ../mod-src/fabric/java/* src/main/java/
+          cp -r ../mod-src/fabric/resources/* src/main/resources/
+          # Offizielle Mojang-Namen verwenden (der Code nutzt diese)
+          sed -i -E 's/^(\s*)mappings .*/\1mappings loom.officialMojangMappings()/' build.gradle
+          # Vorlage trennt evtl. Client/Server-Quellen: aufheben, damit alles in src/main liegt
+          sed -i -E '/splitEnvironmentSourceSets\(\)/d' build.gradle
+          # Mod-Block der Vorlage (referenziert sourceSets.client) entfernen
+          python3 - <<'PY'
+          import re
+          s=open('build.gradle').read()
+          s=re.sub(r'\n\s*mods\s*\{.*?\n\s*\}\n\s*\}', '\n', s, flags=re.S) if 'sourceSets.client' in s else s
+          open('build.gradle','w').write(s)
+          PY
+          echo "mod_version=1.0.0" >> gradle.properties
+          sed -i -E 's/^archives_base_name=.*/archives_base_name=rift-${{ matrix.mc }}-fabric/' gradle.properties
+          sed -i -E 's/^mod_version=.*/mod_version=1.0.0/' gradle.properties
+          cat build.gradle
+      - name: Bauen
+        run: |
+          cd tpl
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+      - name: Release "mod-latest" aktualisieren
+        env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+        run: |
+          JAR=$(ls tpl/build/libs/*.jar | grep -v -- '-sources' | head -1)
+          cp "$JAR" rift-${{ matrix.mc }}-fabric.jar
+          gh release view mod-latest >/dev/null 2>&1 || gh release create mod-latest --title "Rift-Mod (automatisch)" --notes "Wird automatisch gebaut."
+          gh release upload mod-latest rift-${{ matrix.mc }}-fabric.jar --clobber
+      - uses: actions/upload-artifact@v4
+        with: { name: 'rift-${{ matrix.mc }}-fabric', path: 'rift-${{ matrix.mc }}-fabric.jar' }

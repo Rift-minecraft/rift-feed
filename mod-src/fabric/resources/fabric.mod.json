@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "rift",
+  "version": "${version}",
+  "name": "Rift Client",
+  "description": "Zeigt Rift-Cosmetics (Capes, Nametags, Auren) aller Rift-Spieler - auch auf Vanilla-Servern.",
+  "environment": "client",
+  "entrypoints": { "client": ["de.rift.mod.RiftClient"] },
+  "mixins": [{ "config": "rift.mixins.json", "environment": "client" }],
+  "depends": { "fabricloader": ">=0.15.0", "minecraft": "~1.21.11", "java": ">=21" }
+}

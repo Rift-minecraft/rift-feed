@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "de.rift.mod.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["PlayerInfoMixin", "EntityNameMixin", "MinecraftMixin"],
+  "injectors": { "defaultRequire": 1 }
+}
