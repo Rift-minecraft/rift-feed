@@ -12,7 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.PlayerSkin;
 
 import java.lang.reflect.Constructor;
@@ -32,7 +32,7 @@ public final class RiftCosmetics {
     record Data(String kind, int[] colors, String aura, byte[] cape) {}
 
     private static final Map<String, Data> DATA = new ConcurrentHashMap<>();
-    private static final Map<String, ResourceLocation> CAPES = new ConcurrentHashMap<>();
+    private static final Map<String, Identifier> CAPES = new ConcurrentHashMap<>();
     private static final Set<String> ASKED = ConcurrentHashMap.newKeySet();
     private static volatile String api = "";
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6)).build();
@@ -102,7 +102,7 @@ public final class RiftCosmetics {
         mc.execute(() -> {
             try {
                 NativeImage img = NativeImage.read(new java.io.ByteArrayInputStream(png));
-                ResourceLocation rl = ResourceLocation.fromNamespaceAndPath("rift", "cape/" + id + "/" + (System.nanoTime() & 0xffffff));
+                Identifier rl = Identifier.fromNamespaceAndPath("rift", "cape/" + id + "/" + (System.nanoTime() & 0xffffff));
                 DynamicTexture tex = newDynamic(img);
                 mc.getTextureManager().register(rl, tex);
                 CAPES.put(id, rl);
@@ -123,18 +123,18 @@ public final class RiftCosmetics {
     /* ---------- Cape ---------- */
     public static PlayerSkin withCape(UUID uuid, PlayerSkin skin) {
         if (uuid == null || skin == null) return null;
-        ResourceLocation rl = CAPES.get(hex(uuid)); if (rl == null) return null;
+        Identifier rl = CAPES.get(hex(uuid)); if (rl == null) return null;
         try {
             Constructor<?> c = PlayerSkin.class.getDeclaredConstructors()[0];
             Class<?>[] pt = c.getParameterTypes();
             Object body = call(skin, "body", "texture"), elytra = call(skin, "elytra", "elytraTexture"), model = call(skin, "model"), secure = call(skin, "secure");
-            Object cape = pt[1] == ResourceLocation.class ? rl : assetFor(pt[1], rl);
+            Object cape = pt[1] == Identifier.class ? rl : assetFor(pt[1], rl);
             return (PlayerSkin) c.newInstance(body, cape, elytra, model, secure);
         } catch (Throwable t) { return null; }
     }
-    private static Object assetFor(Class<?> type, ResourceLocation rl) throws Exception {
+    private static Object assetFor(Class<?> type, Identifier rl) throws Exception {
         Class<?> impl = Class.forName("net.minecraft.core.ClientAsset$ResourceTexture");
-        return impl.getConstructor(ResourceLocation.class, ResourceLocation.class).newInstance(rl, rl);
+        return impl.getConstructor(Identifier.class, Identifier.class).newInstance(rl, rl);
     }
     private static Object call(Object o, String... names) throws Exception {
         for (String n : names) { try { return o.getClass().getMethod(n).invoke(o); } catch (NoSuchMethodException ignored) {} }
