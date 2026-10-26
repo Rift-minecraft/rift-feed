@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: 21 }
+        with: { distribution: temurin, java-version: 25 }
       - name: Fabric-Vorlage für ${{ matrix.mc }} holen (liefert die passenden Versionen)
         run: git clone --depth 1 --branch ${{ matrix.mc }} https://github.com/FabricMC/fabric-example-mod tpl
       - name: Rift-Code einsetzen
