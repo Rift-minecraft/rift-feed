@@ -6,6 +6,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.core.ClientAsset;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -125,23 +126,11 @@ public final class RiftCosmetics {
         if (uuid == null || skin == null) return null;
         Identifier rl = CAPES.get(hex(uuid)); if (rl == null) return null;
         try {
-            Constructor<?> c = PlayerSkin.class.getDeclaredConstructors()[0];
-            Class<?>[] pt = c.getParameterTypes();
-            Object body = call(skin, "body", "texture"), elytra = call(skin, "elytra", "elytraTexture"), model = call(skin, "model"), secure = call(skin, "secure");
-            Object cape = pt[1] == Identifier.class ? rl : assetFor(pt[1], rl);
-            return (PlayerSkin) c.newInstance(body, cape, elytra, model, secure);
+            return new PlayerSkin(skin.body(), new ClientAsset.ResourceTexture(rl, rl), skin.elytra(), skin.model(), skin.secure());
         } catch (Throwable t) { return null; }
     }
-    private static Object assetFor(Class<?> type, Identifier rl) throws Exception {
-        Class<?> impl = Class.forName("net.minecraft.core.ClientAsset$ResourceTexture");
-        return impl.getConstructor(Identifier.class, Identifier.class).newInstance(rl, rl);
-    }
-    private static Object call(Object o, String... names) throws Exception {
-        for (String n : names) { try { return o.getClass().getMethod(n).invoke(o); } catch (NoSuchMethodException ignored) {} }
-        throw new NoSuchMethodException(names[0]);
-    }
-    public static UUID uuidOf(Object profile) {
-        try { return (UUID) call(profile, "id", "getId"); } catch (Throwable t) { return null; }
+    public static UUID uuidOf(com.mojang.authlib.GameProfile profile) {
+        try { return profile.id(); } catch (Throwable t) { return null; }
     }
 
     /* ---------- Nametag ---------- */
