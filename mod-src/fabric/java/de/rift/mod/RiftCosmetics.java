@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 
 /** Holt die Cosmetics aller Spieler aus dem Rift-Worker und wendet sie im Spiel an. */
 public final class RiftCosmetics {
-    record Data(String kind, int[] colors, String aura, byte[] cape) {}
+    record Data(String kind, int[] colors, String aura, byte[] cape, boolean plus) {}
 
     private static final Map<String, Data> DATA = new ConcurrentHashMap<>();
     private static final Map<String, Identifier> CAPES = new ConcurrentHashMap<>();
@@ -92,7 +92,8 @@ public final class RiftCosmetics {
             if (c > 0) try { cape = Base64.getDecoder().decode(s.substring(c + 1)); } catch (Exception ignored) {}
         }
         Data old = DATA.get(id);
-        Data d = new Data(kind, cols, aura, cape);
+        boolean plus = o.has("plus") && !o.get("plus").isJsonNull() && o.get("plus").getAsBoolean();
+        Data d = new Data(kind, cols, aura, cape, plus);
         DATA.put(id, d);
         if (cape != null && (old == null || !Arrays.equals(old.cape(), cape))) registerCape(id, cape);
         else if (cape == null) CAPES.remove(id);
