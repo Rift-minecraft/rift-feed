@@ -1,3 +1,14 @@
 {
-  "announcements": []
+  "announcements": [
+    {
+      "id": "mvqw4y08x4qo",
+      "type": "news",
+      "title": "emil ist lost",
+      "message": "",
+      "link": "",
+      "blocking": false,
+      "createdAt": "2026-10-27T16:19:21.512Z",
+      "expiresAt": "2026-10-27T17:19:21.512Z"
+    }
+  ]
 }
