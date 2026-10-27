@@ -137,7 +137,9 @@ public final class RiftCosmetics {
     /* ---------- Nametag ---------- */
     public static Component nameFor(UUID uuid, Component base) {
         Data d = DATA.get(hex(uuid)); if (d == null) return null;
-        MutableComponent out = Component.literal("✦ ").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(0x7DD3FC)));
+        MutableComponent out = Component.literal("\u2726").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(0x7DD3FC)));
+        if (d.plus()) out.append(Component.literal("+").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(0x22C55E)).withBold(true)));
+        out.append(Component.literal(" "));
         if (d.kind().equals("none") || d.colors().length == 0 && !d.kind().equals("rainbow")) return out.append(base);
         String s = base.getString(); int n = Math.max(1, s.length());
         for (int i = 0; i < s.length(); i++) {
