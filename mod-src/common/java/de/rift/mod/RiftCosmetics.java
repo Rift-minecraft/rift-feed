@@ -29,10 +29,11 @@ import java.util.function.Supplier;
 
 /** Holt die Cosmetics aller Spieler aus dem Rift-Worker und wendet sie im Spiel an. */
 public final class RiftCosmetics {
-    record Data(String kind, int[] colors, String aura, byte[] cape, boolean plus) {}
+    record Data(String kind, int[] colors, String aura, byte[] cape, boolean plus, int plusColor, int sig) {}
 
     private static final Map<String, Data> DATA = new ConcurrentHashMap<>();
     private static final Map<String, Identifier> CAPES = new ConcurrentHashMap<>();
+    private static final Map<String, Identifier[]> FRAMES = new ConcurrentHashMap<>();
     private static final Set<String> ASKED = ConcurrentHashMap.newKeySet();
     private static volatile String api = "";
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6)).build();
@@ -44,9 +45,14 @@ public final class RiftCosmetics {
     public static void start() {
         try {
             Path f = Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("rift-cosmetics.json");
-            if (Files.exists(f)) api = JsonParser.parseString(Files.readString(f)).getAsJsonObject().get("api").getAsString().replaceAll("/$", "");
+            if (Files.exists(f)) {
+                JsonObject cfg = JsonParser.parseString(Files.readString(f)).getAsJsonObject();
+                api = cfg.get("api").getAsString().replaceAll("/$", "");
+                if (cfg.has("emotes")) { List<String> l = new ArrayList<>(); for (JsonElement e : cfg.getAsJsonArray("emotes")) l.add(e.getAsString()); RiftEmotes.MY = l; }
+            }
         } catch (Exception ignored) {}
         if (api.isEmpty()) return;
+        RiftNet.start(api);
         Thread t = new Thread(() -> {
             while (true) {
                 try { Thread.sleep(15000); poll(); } catch (InterruptedException e) { return; } catch (Throwable ignored) {}
@@ -92,10 +98,22 @@ public final class RiftCosmetics {
         }
         Data old = DATA.get(id);
         boolean plus = o.has("plus") && !o.get("plus").isJsonNull() && o.get("plus").getAsBoolean();
-        Data d = new Data(kind, cols, aura, cape, plus);
+        int pc = o.has("plusColor") && !o.get("plusColor").isJsonNull() ? rgb(o.get("plusColor").getAsString()) : 0x22C55E;
+        List<byte[]> frames = new ArrayList<>(); int sig = 0;
+        if (o.has("capeFrames") && o.get("capeFrames").isJsonArray()) {
+            for (JsonElement fe : o.getAsJsonArray("capeFrames")) {
+                String fs = fe.getAsString(); int c = fs.indexOf(',');
+                if (c > 0) try { byte[] b = Base64.getDecoder().decode(fs.substring(c + 1)); frames.add(b); sig = sig * 31 + Arrays.hashCode(b); } catch (Exception ignored) {}
+            }
+        }
+        Data d = new Data(kind, cols, aura, cape, plus, pc, sig);
         DATA.put(id, d);
-        if (cape != null && (old == null || !Arrays.equals(old.cape(), cape))) registerCape(id, cape);
-        else if (cape == null) CAPES.remove(id);
+        if (frames.size() > 1) { if (old == null || old.sig() != sig) registerFrames(id, frames); }
+        else {
+            FRAMES.remove(id);
+            if (cape != null && (old == null || !Arrays.equals(old.cape(), cape) || old.sig() != 0)) registerCape(id, cape);
+            else if (cape == null) CAPES.remove(id);
+        }
     }
 
     private static void registerCape(String id, byte[] png) {
@@ -107,6 +125,21 @@ public final class RiftCosmetics {
                 DynamicTexture tex = newDynamic(img);
                 mc.getTextureManager().register(rl, tex);
                 CAPES.put(id, rl);
+            } catch (Throwable ignored) {}
+        });
+    }
+
+    private static void registerFrames(String id, List<byte[]> pngs) {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> {
+            try {
+                Identifier[] arr = new Identifier[pngs.size()]; int salt = (int) (System.nanoTime() & 0xffffff);
+                for (int i = 0; i < arr.length; i++) {
+                    NativeImage img = NativeImage.read(new java.io.ByteArrayInputStream(pngs.get(i)));
+                    arr[i] = Identifier.fromNamespaceAndPath("rift", "capeanim/" + id + "/" + salt + "/" + i);
+                    mc.getTextureManager().register(arr[i], newDynamic(img));
+                }
+                FRAMES.put(id, arr);
             } catch (Throwable ignored) {}
         });
     }
@@ -124,7 +157,9 @@ public final class RiftCosmetics {
     /* ---------- Cape ---------- */
     public static PlayerSkin withCape(UUID uuid, PlayerSkin skin) {
         if (uuid == null || skin == null) return null;
-        Identifier rl = CAPES.get(hex(uuid)); if (rl == null) return null;
+        Identifier rl = CAPES.get(hex(uuid)); Identifier[] fr = FRAMES.get(hex(uuid));
+        if (fr != null && fr.length > 1) rl = fr[(int) ((System.currentTimeMillis() / 200) % fr.length)];
+        if (rl == null) return null;
         try {
             return new PlayerSkin(skin.body(), new ClientAsset.ResourceTexture(rl, rl), skin.elytra(), skin.model(), skin.secure());
         } catch (Throwable t) { return null; }
@@ -137,7 +172,7 @@ public final class RiftCosmetics {
     public static Component nameFor(UUID uuid, Component base) {
         Data d = DATA.get(hex(uuid)); if (d == null) return null;
         MutableComponent out = Component.literal("\u2726").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(0x7DD3FC)));
-        if (d.plus()) out.append(Component.literal("+").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(0x22C55E)).withBold(true)));
+        if (d.plus()) out.append(Component.literal("+").withStyle(Style.EMPTY.withColor(TextColor.fromRgb(d.plusColor())).withBold(true)));
         out.append(Component.literal(" "));
         if (d.kind().equals("none") || d.colors().length == 0 && !d.kind().equals("rainbow")) return out.append(base);
         String s = base.getString(); int n = Math.max(1, s.length());
@@ -151,6 +186,7 @@ public final class RiftCosmetics {
 
     /* ---------- Aura ---------- */
     public static void tick(Minecraft mc) {
+        RiftEmotes.tick(mc);
         if (mc.level == null || DATA.isEmpty() || (++tick & 3) != 0) return;
         for (AbstractClientPlayer p : mc.level.players()) {
             Data d = DATA.get(hex(p.getUUID())); if (d == null || d.aura() == null) continue;

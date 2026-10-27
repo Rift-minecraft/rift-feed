@@ -6,7 +6,10 @@
     "PlayerInfoMixin",
     "EntityNameMixin",
     "MinecraftMixin",
-    "GuiMixin"
+    "GuiMixin",
+    "EntityRenderStateMixin",
+    "LivingRendererMixin",
+    "HumanoidModelMixin"
   ],
   "injectors": {
     "defaultRequire": 0

@@ -6,7 +6,7 @@ import org.lwjgl.glfw.GLFW;
 
 /** Tasten-Abfrage ohne Fabric-API: Menü (Rechts-Shift) und Marker (Mausrad-Klick). */
 public final class RiftInput {
-    private static boolean menuDown, markDown;
+    private static boolean menuDown, markDown, emoteDown;
     private RiftInput() {}
 
     public static void tick(Minecraft mc) {
@@ -19,7 +19,10 @@ public final class RiftInput {
         boolean k = false;
         if (c.markerMouse >= 0) k = GLFW.glfwGetMouseButton(win, c.markerMouse) == GLFW.GLFW_PRESS;
         if (c.markerKey > 0) k |= GLFW.glfwGetKey(win, c.markerKey) == GLFW.GLFW_PRESS;
-        if (k && !markDown && mc.screen == null) RiftMarkers.place(mc);
+        if (k && !markDown && mc.screen == null) RiftMarkers.place(mc, GLFW.glfwGetKey(win, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS);
         markDown = k;
+        boolean e = GLFW.glfwGetKey(win, c.emoteKey) == GLFW.GLFW_PRESS;
+        if (e && !emoteDown && mc.screen == null) mc.setScreen(new RiftEmoteWheel());
+        emoteDown = e;
     }
 }

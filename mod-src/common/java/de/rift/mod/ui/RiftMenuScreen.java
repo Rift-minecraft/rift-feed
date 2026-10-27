@@ -29,6 +29,16 @@ public class RiftMenuScreen extends Screen {
     private final Map<String, int[]> rects = new HashMap<>();
     private long openAt = System.currentTimeMillis();
     private boolean released = false;
+    private net.minecraft.client.gui.components.EditBox nameBox;
+    private static final String[] MICONS = {"\u2666", "\u2605", "\u2691", "\u2620", "\u2665"};
+
+    @Override protected void init() {
+        RiftConfig c = RiftConfig.get();
+        nameBox = new net.minecraft.client.gui.components.EditBox(this.font, 0, 0, 160, 16, Component.literal("Name"));
+        nameBox.setMaxLength(24); nameBox.setValue(c.privateName == null ? "" : c.privateName);
+        nameBox.setResponder(v -> { c.privateName = v; c.save(); });
+        this.addWidget(nameBox);
+    }
 
     public RiftMenuScreen() { super(Component.literal("Rift")); }
 
@@ -52,6 +62,7 @@ public class RiftMenuScreen extends Screen {
             if (on) g.fill(x + 10, 26, x + tw - 10, 28, 0xFF000000 | c.accent);
             hit(x, 8, x + tw, 30, () -> { tab = i2; });
         }
+        nameBox.visible = false;
         if (tab == 0) widgetsTab(g, mx, my, c);
         else if (tab == 1) designTab(g, mx, my, c);
         else if (tab == 2) markerTab(g, mx, my, c);
@@ -138,7 +149,7 @@ public class RiftMenuScreen extends Screen {
     /* ---------------- Marker ---------------- */
     private void markerTab(GuiGraphics g, int mx, int my, RiftConfig c) {
         int x = width / 2 - 130, y = 50;
-        RiftDraw.round(g, x - 12, y - 12, x + 262, y + 150, 6, RiftDraw.argb(0x0B0B10, 120));
+        RiftDraw.round(g, x - 12, y - 12, x + 262, y + 250, 6, RiftDraw.argb(0x0B0B10, 120));
         RiftDraw.text(g, "Marker", x, y, 0xFFFFFF); y += 18;
         toggle(g, x, y, "Marker aktiv", c.markerOn, () -> { c.markerOn = !c.markerOn; c.save(); }); y += 24;
         RiftDraw.text(g, "Taste zum Markieren", x, y, 0x9CA3AF); y += 12;
@@ -146,7 +157,17 @@ public class RiftMenuScreen extends Screen {
         RiftDraw.round(g, x, y, x + 220, y + 18, 4, capturing ? RiftDraw.argb(c.accent, 90) : 0x33FFFFFF); RiftDraw.text(g, label, x + 8, y + 5, 0xFFFFFF);
         hit(x, y, x + 220, y + 18, () -> capturing = true); y += 28;
         slider(g, x, y, 220, "Dauer (Sekunden)", c.markerSeconds, 10, 300, v -> { c.markerSeconds = (int) Math.round(v); }); y += 30;
-        RiftDraw.text(g, "Zeigt Entfernung in Blöcken in der Welt und auf der Richtungsleiste.", x, y, 0x6B7280);
+        RiftDraw.text(g, "Mausrad: Marker f\u00fcr alle Rift-Spieler (mit Kopf). Strg + Mausrad: privater", x, y, 0x6B7280); y += 11;
+        RiftDraw.text(g, "Marker, nur f\u00fcr dich sichtbar.", x, y, 0x6B7280); y += 18;
+        RiftDraw.text(g, "Privater Marker: Name", x, y, 0x9CA3AF); y += 12;
+        nameBox.setX(x); nameBox.setY(y); nameBox.visible = true; nameBox.render(g, mx, my, 0f); y += 24;
+        RiftDraw.text(g, "Privater Marker: Symbol", x, y, 0x9CA3AF); y += 12;
+        for (int i = 0; i < MICONS.length; i++) {
+            int sx = x + i * 28, ii = i; boolean on = c.privateIcon == i;
+            RiftDraw.round(g, sx, y, sx + 22, y + 18, 4, on ? RiftDraw.argb(c.accent, 160) : 0x33FFFFFF);
+            RiftDraw.text(g, MICONS[i], sx + 11 - RiftDraw.width(MICONS[i]) / 2, y + 5, 0xFFFFFF);
+            hit(sx, y, sx + 22, y + 18, () -> { c.privateIcon = ii; c.save(); });
+        }
     }
     private String bindName(RiftConfig c) {
         if (c.markerKey > 0) { String n = GLFW.glfwGetKeyName(c.markerKey, 0); return "Taste: " + (n == null ? String.valueOf(c.markerKey) : n.toUpperCase()); }
@@ -249,6 +270,7 @@ public class RiftMenuScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent e) {
         int k = e.key(); RiftConfig c = RiftConfig.get();
+        if (tab == 2 && nameBox != null && nameBox.isFocused() && k != GLFW.GLFW_KEY_ESCAPE) return super.keyPressed(e);
         if (capturing) { if (k != GLFW.GLFW_KEY_ESCAPE) { c.markerKey = k; c.markerMouse = -1; c.save(); } capturing = false; return true; }
         if (k == GLFW.GLFW_KEY_ESCAPE || (k == c.menuKey && released)) { onClose(); return true; }
         if (k == c.menuKey) return true;

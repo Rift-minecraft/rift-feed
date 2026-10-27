@@ -22,6 +22,9 @@ public final class RiftConfig {
     public int markerSeconds = 90;
     public int menuKey = 82;          // R
     public int ver = 0;
+    public int emoteKey = 66;         // B
+    public String privateName = "Marker";
+    public int privateIcon = 0;
 
     private static RiftConfig I;
     private static final Gson G = new GsonBuilder().setPrettyPrinting().create();
