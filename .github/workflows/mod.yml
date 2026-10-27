@@ -59,9 +59,10 @@ jobs:
               echo "=== $c"; javap -p -cp "$j" $c 2>&1 | head -220
             done
           done > inspect.txt 2>&1 || true
-      - uses: actions/upload-artifact@v4
+      - name: Diagnose veroeffentlichen
         if: always()
-        with: { name: 'inspect-fabric', path: 'inspect.txt' }
+        run: |
+          mkdir ../ins && cp inspect.txt ../ins/ && cd ../ins && git init -q && git checkout -q -b inspect && git add . && git -c user.name=ci -c user.email=ci@x commit -qm inspect && git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" inspect
       - name: Release "mod-latest" aktualisieren
         env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
         run: |
