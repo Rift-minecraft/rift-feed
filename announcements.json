@@ -1,6 +1,16 @@
 {
   "announcements": [
     {
+      "id": "mvqw4lehnwl2",
+      "type": "news",
+      "title": "Emil lost",
+      "message": "",
+      "link": "",
+      "blocking": false,
+      "createdAt": "2026-10-27T16:19:05.177Z",
+      "expiresAt": "2026-10-27T17:19:05.177Z"
+    },
+    {
       "id": "mvqlfiycqong",
       "type": "update",
       "title": "Rift Launcher 1.3.8 ist da!",
