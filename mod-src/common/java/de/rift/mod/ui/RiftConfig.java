@@ -1,7 +1,6 @@
 package de.rift.mod.ui;
 
 import com.google.gson.*;
-import net.fabricmc.loader.api.FabricLoader;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,5 +46,5 @@ public final class RiftConfig {
         return widgets.computeIfAbsent(id, k -> { W w = new W(); w.x = 0.02f; w.y = 0.3f; return w; });
     }
     public void save() { try { Files.writeString(path(), G.toJson(this)); } catch (Throwable ignored) {} }
-    private static Path path() { return FabricLoader.getInstance().getConfigDir().resolve("rift-client.json"); }
+    private static Path path() { return net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("rift-client.json"); }
 }

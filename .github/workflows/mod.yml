@@ -23,6 +23,7 @@ jobs:
           cd tpl
           rm -rf src
           mkdir -p src/main/java src/main/resources
+          cp -r ../mod-src/common/java/* src/main/java/
           cp -r ../mod-src/fabric/java/* src/main/java/
           cp -r ../mod-src/fabric/resources/* src/main/resources/
           # Offizielle Mojang-Namen verwenden (der Code nutzt diese)
@@ -57,3 +58,46 @@ jobs:
           gh release upload mod-latest rift-${{ matrix.mc }}-fabric.jar --clobber
       - uses: actions/upload-artifact@v4
         with: { name: 'rift-${{ matrix.mc }}-fabric', path: 'rift-${{ matrix.mc }}-fabric.jar' }
+
+  neoforge:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mc: ['1.21.11']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - name: NeoForge-Vorlage holen
+        run: git clone --depth 1 https://github.com/NeoForgeMDKs/MDK-${{ matrix.mc }}-ModDevGradle tpl
+      - name: Rift-Code einsetzen
+        run: |
+          cd tpl
+          rm -rf src
+          mkdir -p src/main/java src/main/resources src/main/templates
+          cp -r ../mod-src/common/java/* src/main/java/
+          cp -r ../mod-src/neoforge/java/* src/main/java/
+          cp -r ../mod-src/neoforge/resources/* src/main/resources/
+          cp -r ../mod-src/neoforge/templates/* src/main/templates/
+          sed -i -E 's/^mod_id=.*/mod_id=rift/; s/^mod_name=.*/mod_name=Rift Client/; s/^mod_group_id=.*/mod_group_id=de.rift.mod/' gradle.properties
+          sed -i -E "s/^\s*archivesName = .*/    archivesName = 'rift-${{ matrix.mc }}-neoforge'/" build.gradle
+          sed -i -E 's/^org.gradle.configuration-cache=.*/org.gradle.configuration-cache=false/' gradle.properties
+          sed -i '/downloadSources/d;/downloadJavadoc/d' build.gradle
+      - name: Bauen
+        run: |
+          cd tpl
+          chmod +x gradlew
+          ./gradlew build --no-daemon > ../build.log 2>&1 || {
+            python3 -c "import sys;t=open('../build.log',errors='replace').read()[-6000:];print('::error title=Gradle-Fehler::'+t.replace('%','%25').replace('\r','').replace('\n','%0A'))"
+            exit 1
+          }
+      - name: Release "mod-latest" aktualisieren
+        env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+        run: |
+          JAR=$(ls tpl/build/libs/*.jar | grep -v -- '-sources' | head -1)
+          cp "$JAR" rift-${{ matrix.mc }}-neoforge.jar
+          gh release view mod-latest >/dev/null 2>&1 || gh release create mod-latest --title "Rift-Mod (automatisch)" --notes "Wird automatisch gebaut."
+          gh release upload mod-latest rift-${{ matrix.mc }}-neoforge.jar --clobber
+      - uses: actions/upload-artifact@v4
+        with: { name: 'rift-${{ matrix.mc }}-neoforge', path: 'rift-${{ matrix.mc }}-neoforge.jar' }

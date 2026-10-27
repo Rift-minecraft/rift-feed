@@ -2,7 +2,6 @@ package de.rift.mod;
 
 import com.google.gson.*;
 import com.mojang.blaze3d.platform.NativeImage;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -44,7 +43,7 @@ public final class RiftCosmetics {
 
     public static void start() {
         try {
-            Path f = FabricLoader.getInstance().getConfigDir().resolve("rift-cosmetics.json");
+            Path f = Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("rift-cosmetics.json");
             if (Files.exists(f)) api = JsonParser.parseString(Files.readString(f)).getAsJsonObject().get("api").getAsString().replaceAll("/$", "");
         } catch (Exception ignored) {}
         if (api.isEmpty()) return;

@@ -1,0 +1,22 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="All Rights Reserved"
+[[mixins]]
+config="rift.mixins.json"
+[[mods]]
+modId="rift"
+version="1.0.0"
+displayName="Rift Client"
+description='''Rift-Cosmetics und Menue.'''
+[[dependencies.rift]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${neo_version},)"
+    ordering="NONE"
+    side="CLIENT"
+[[dependencies.rift]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="CLIENT"
