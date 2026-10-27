@@ -39,6 +39,12 @@ public final class RiftWidgets {
     }
 
     static {
+        add("bossbar", "Boss Bar", "HUD", (g, mc, x, y) -> {
+            if (!(mc.screen instanceof RiftMenuScreen)) return new int[]{182, 16};   // nur Vorschau
+            RiftDraw.round(g, x, y + 9, x + 182, y + 14, 2, 0xAA7F1D1D);
+            RiftDraw.text(g, "Boss Bar", x + 91 - RiftDraw.width("Boss Bar") / 2, y, 0xCCCCCC);
+            return new int[]{182, 16};
+        });
         add("fps", "FPS", "Spiel-Info", (g, mc, x, y) -> one(g, x, y, "FPS", String.valueOf(mc.getFps())));
         add("coords", "Koordinaten", "Spiel-Info", (g, mc, x, y) -> {
             LocalPlayer p = mc.player; if (p == null) return lines(g, x, y, "X: 0", "Y: 64", "Z: 0");

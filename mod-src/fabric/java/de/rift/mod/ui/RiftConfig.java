@@ -21,7 +21,8 @@ public final class RiftConfig {
     public int markerMouse = 2;       // GLFW-Maustaste (2 = Mausrad-Klick), -1 = aus
     public int markerKey = -1;        // alternativ Taste (GLFW-Code), -1 = keine
     public int markerSeconds = 90;
-    public int menuKey = 344;         // Rechts-Shift
+    public int menuKey = 82;          // R
+    public int ver = 0;
 
     private static RiftConfig I;
     private static final Gson G = new GsonBuilder().setPrettyPrinting().create();
@@ -34,13 +35,14 @@ public final class RiftConfig {
             } catch (Throwable ignored) {}
             if (I == null) I = new RiftConfig();
             if (I.widgets == null) I.widgets = new LinkedHashMap<>();
+            if (I.ver < 2) { I.ver = 2; I.menuKey = 82; for (W w : I.widgets.values()) w.on = false; }
             if (I.widgets.isEmpty()) {   // Standard-Widgets
-                def("fps", 0.01f, 0.02f); def("coords", 0.01f, 0.07f); def("direction", 0.36f, 0.01f);
+                def("fps", 0.01f, 0.02f); def("coords", 0.01f, 0.07f); def("direction", 0.36f, 0.01f); def("bossbar", 0.36f, 0.03f);
             }
         }
         return I;
     }
-    private static void def(String id, float x, float y) { W w = new W(); w.on = true; w.x = x; w.y = y; I.widgets.put(id, w); }
+    private static void def(String id, float x, float y) { W w = new W(); w.on = false; w.x = x; w.y = y; I.widgets.put(id, w); }
     public W w(String id) {
         return widgets.computeIfAbsent(id, k -> { W w = new W(); w.x = 0.02f; w.y = 0.3f; return w; });
     }
