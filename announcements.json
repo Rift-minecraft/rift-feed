@@ -1,16 +1,16 @@
 {
   "announcements": [
     {
-      "id": "mvs0cut8zvnz",
+      "id": "mvs0hojg1ln2",
       "type": "update",
-      "title": "Rift Launcher 1.4.1 ist da!",
+      "title": "Rift Launcher 1.4.2 ist da!",
       "message": "Ein neues Update steht bereit.",
-      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v1.4.1/rift-update-1.4.1.zip",
-      "version": "1.4.1",
+      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v1.4.2/rift-update-1.4.2.zip",
+      "version": "1.4.2",
       "mandatory": false,
       "hot": true,
-      "sha256": "b4b2ee81d527f33163f552a6facb5b224731becaba18c582625d50a2f172ec91",
-      "createdAt": "2026-10-28T11:05:15.260Z"
+      "sha256": "f1a25b54d293bf0dcef35fba68d55953d53d615933368f14ef0d14d652b0b4ce",
+      "createdAt": "2026-10-28T11:09:00.412Z"
     },
     {
       "id": "mvqw4y08x4qo",
