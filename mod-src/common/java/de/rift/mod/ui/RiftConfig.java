@@ -24,6 +24,7 @@ public final class RiftConfig {
     public int ver = 0;
     public boolean riftFont = false;   // Rift-Schrift (Beta)
     public java.util.List<String> wheel = null;   // eigenes Emote-Rad (sonst das aus dem Launcher)
+    public int coordKey = 72;         // H: Koordinaten in den Chat
     public int emoteKey = 66;         // B
     public String privateName = "Marker";
     public int privateIcon = 0;

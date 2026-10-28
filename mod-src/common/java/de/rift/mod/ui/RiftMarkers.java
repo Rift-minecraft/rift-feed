@@ -49,6 +49,7 @@ public final class RiftMarkers {
         if (m.priv) return; com.google.gson.JsonObject o = new com.google.gson.JsonObject(); o.addProperty("t", "marker"); o.addProperty("id", m.id);
         o.addProperty("x", m.pos.x); o.addProperty("y", m.pos.y); o.addProperty("z", m.pos.z); o.addProperty("col", m.color); o.addProperty("nm", m.name); o.addProperty("ic", m.icon); de.rift.mod.RiftNet.send(o);
     }
+    public static List<M> snapshot() { synchronized (LIST) { return new ArrayList<>(LIST); } }
     public static int[] palette() { return COLORS; }
 
     private static void prune() {

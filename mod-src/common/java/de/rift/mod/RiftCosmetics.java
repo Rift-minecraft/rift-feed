@@ -80,7 +80,7 @@ public final class RiftCosmetics {
         try {
             String q = String.join(",", ids.subList(0, Math.min(50, ids.size())));
             HttpResponse<String> r = HTTP.send(HttpRequest.newBuilder(URI.create(api + "/v1/cosmetics?uuids=" + q)).timeout(Duration.ofSeconds(8)).GET().build(), HttpResponse.BodyHandlers.ofString());
-            if (r.statusCode() != 200) { RiftLog.cloud = "Cloud: Fehler HTTP " + r.statusCode() + " " + RiftLog.snip(r.body()); return; }
+            if (r.statusCode() != 200) { RiftLog.cloud = "Server error"; RiftLog.err("Cloud GET " + r.statusCode() + " " + RiftLog.snip(r.body())); return; }
             JsonObject all = JsonParser.parseString(r.body()).getAsJsonObject();
             Set<String> have = new HashSet<>();
             for (Map.Entry<String, JsonElement> e : all.entrySet()) { parse(e.getKey(), e.getValue().getAsJsonObject()); have.add(e.getKey()); }

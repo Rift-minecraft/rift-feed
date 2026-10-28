@@ -77,6 +77,34 @@ public final class RiftWidgets {
             return one(g, x, y, "Ping", ping + " ms");
         });
         add("clock", "Uhrzeit", "Spiel-Info", (g, mc, x, y) -> one(g, x, y, "Zeit", LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))));
+        add("weather", "Wetter & Tageszeit", "Welt", (g, mc, x, y) -> {
+            if (mc.level == null) return one(g, x, y, "Wetter", "-");
+            long t = mc.level.getDayTime() % 24000L; boolean night = t >= 13000 && t < 23000;
+            String w = mc.level.isThundering() ? "Gewitter" : mc.level.isRaining() ? "Regen" : "Klar";
+            String[] moon = {"Vollmond", "abn. 3/4", "abn. 1/2", "abn. 1/4", "Neumond", "zun. 1/4", "zun. 1/2", "zun. 3/4"};
+            long day = mc.level.getDayTime() / 24000L;
+            return lines(g, x, y, w + " · " + (night ? "Nacht" : "Tag"), night ? "Mond: " + moon[(int) (day % 8)] + (t < 23000 ? " · Schlafen möglich" : "") : "Nacht in " + ((13000 - t) / 20) + " s");
+        });
+        add("stats", "Statistik (Zeit & Tode)", "Spiel-Info", (g, mc, x, y) -> {
+            long s = RiftStats.totalMs() / 1000, ss = (System.currentTimeMillis() - RiftStats.START) / 1000;
+            return lines(g, x, y, "Gesamt: " + s / 3600 + "h " + s / 60 % 60 + "m", "Sitzung: " + ss / 3600 + "h " + ss / 60 % 60 + "m", "Tode: " + RiftStats.totalDeaths() + " (heute " + RiftStats.deaths + ")");
+        });
+        add("radar", "Radar (Marker & Spieler)", "Spieler", (g, mc, x, y) -> {
+            int r = 40, w = r * 2 + 2; RiftDraw.panel(g, x, y, w, w);
+            int cx = x + w / 2, cy = y + w / 2; g.fill(cx - 1, cy - 1, cx + 2, cy + 2, 0xFFFFFFFF);
+            if (mc.player == null) return new int[]{w, w};
+            double yaw = Math.toRadians(mc.player.getYRot()), cs = Math.cos(yaw), sn = Math.sin(yaw); double range = 60;
+            java.util.List<double[]> pts = new ArrayList<>();
+            for (RiftMarkers.M m : RiftMarkers.snapshot()) pts.add(new double[]{m.pos.x, m.pos.z, 0xFF000000 | m.color});
+            for (net.minecraft.world.entity.player.Player p : mc.level.players()) if (p != mc.player) pts.add(new double[]{p.getX(), p.getZ(), 0xFF38BDF8});
+            for (double[] d : pts) {
+                double dx = d[0] - mc.player.getX(), dz = d[1] - mc.player.getZ();
+                double rx = dx * cs + dz * sn, rz = -dx * sn + dz * cs;   // Blickrichtung = oben
+                double dist = Math.hypot(rx, rz), k = dist > range ? range / dist : 1; int px = cx - (int) Math.round(rx * k / range * (r - 3)), py = cy - (int) Math.round(rz * k / range * (r - 3));
+                g.fill(px - 1, py - 1, px + 2, py + 2, (int) d[2]);
+            }
+            return new int[]{w, w};
+        });
         add("worldtime", "Weltzeit", "Spiel-Info", (g, mc, x, y) -> {
             long t = mc.level == null ? 0 : (mc.level.getDayTime() % 24000L); long h = (t / 1000 + 6) % 24, m = (t % 1000) * 60 / 1000;
             return one(g, x, y, "Welt", String.format("%02d:%02d", h, m));

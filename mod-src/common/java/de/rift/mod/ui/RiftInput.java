@@ -6,7 +6,8 @@ import org.lwjgl.glfw.GLFW;
 
 /** Tasten-Abfrage ohne Fabric-API: Menü (Rechts-Shift) und Marker (Mausrad-Klick). */
 public final class RiftInput {
-    private static boolean menuDown, markDown, emoteDown;
+    private static boolean menuDown, markDown, emoteDown, coordDown, wasDead;
+    private static long lastSave;
     private RiftInput() {}
 
     public static void tick(Minecraft mc) {
@@ -25,5 +26,16 @@ public final class RiftInput {
         boolean e = GLFW.glfwGetKey(win, c.emoteKey) == GLFW.GLFW_PRESS;
         if (e && !emoteDown && mc.screen == null) mc.setScreen(new RiftEmoteWheel());
         emoteDown = e;
+        boolean co = c.coordKey > 0 && GLFW.glfwGetKey(win, c.coordKey) == GLFW.GLFW_PRESS;
+        if (co && !coordDown && mc.screen == null) {   // H: Position in den Chat (Dimension + Koordinaten)
+            String d = String.valueOf(mc.level.dimension()); int s = d.lastIndexOf(':'), q = d.indexOf(']'); d = s >= 0 && q > s ? d.substring(s + 1, q) : "?";
+            String msg = "Meine Position: " + mc.player.getBlockX() + " " + mc.player.getBlockY() + " " + mc.player.getBlockZ() + " (" + d + ")";
+            try { mc.player.connection.sendChat(msg); } catch (Throwable t) { RiftLog.err("Koordinaten: " + t); }
+        }
+        coordDown = co;
+        boolean dead = mc.player.getHealth() <= 0f;   // Statistik: Tode zaehlen (steigende Flanke)
+        if (dead && !wasDead) RiftStats.deaths++;
+        wasDead = dead;
+        if (System.currentTimeMillis() - lastSave > 60000) { lastSave = System.currentTimeMillis(); RiftStats.save(); }
     }
 }
