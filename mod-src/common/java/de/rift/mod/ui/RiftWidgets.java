@@ -45,6 +45,27 @@ public final class RiftWidgets {
             RiftDraw.text(g, "Boss Bar", x + 91 - RiftDraw.width("Boss Bar") / 2, y, 0xCCCCCC);
             return new int[]{182, 16};
         });
+        add("hunger", "Hunger", "Spieler", (g, mc, x, y) -> one(g, x, y, "Hunger", mc.player == null ? "20" : String.valueOf(mc.player.getFoodData().getFoodLevel())));
+        add("server", "Server", "Welt", (g, mc, x, y) -> {
+            String s = "Einzelspieler"; try { if (mc.getCurrentServer() != null) s = mc.getCurrentServer().ip; } catch (Throwable ignored) {}
+            return one(g, x, y, "Server", s);
+        });
+        add("target", "Ziel-Block", "Welt", (g, mc, x, y) -> {
+            String b = "-";
+            try { if (mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult bh && mc.level != null) b = mc.level.getBlockState(bh.getBlockPos()).getBlock().getName().getString(); } catch (Throwable ignored) {}
+            return one(g, x, y, "Ziel", b);
+        });
+        add("held", "Item in der Hand", "Spieler", (g, mc, x, y) -> {
+            String n = "-", d = "";
+            try { var st = mc.player.getMainHandItem(); if (!st.isEmpty()) { n = st.getHoverName().getString(); if (st.isDamageableItem()) d = " " + (st.getMaxDamage() - st.getDamageValue()) + "/" + st.getMaxDamage(); else if (st.getCount() > 1) d = " x" + st.getCount(); } } catch (Throwable ignored) {}
+            return one(g, x, y, "Hand", n + d);
+        });
+        add("armor", "R\u00fcstung", "Spieler", (g, mc, x, y) -> {
+            String[] ls = new String[4]; var slots = new net.minecraft.world.entity.EquipmentSlot[]{net.minecraft.world.entity.EquipmentSlot.HEAD, net.minecraft.world.entity.EquipmentSlot.CHEST, net.minecraft.world.entity.EquipmentSlot.LEGS, net.minecraft.world.entity.EquipmentSlot.FEET};
+            String[] nm = {"Helm", "Brust", "Hose", "Schuhe"};
+            for (int i = 0; i < 4; i++) { String v = "-"; try { var st = mc.player.getItemBySlot(slots[i]); if (!st.isEmpty()) v = st.isDamageableItem() ? (100 * (st.getMaxDamage() - st.getDamageValue()) / Math.max(1, st.getMaxDamage())) + " %" : "ok"; } catch (Throwable ignored) {} ls[i] = nm[i] + ": " + v; }
+            return lines(g, x, y, ls);
+        });
         add("fps", "FPS", "Spiel-Info", (g, mc, x, y) -> one(g, x, y, "FPS", String.valueOf(mc.getFps())));
         add("coords", "Koordinaten", "Spiel-Info", (g, mc, x, y) -> {
             LocalPlayer p = mc.player; if (p == null) return lines(g, x, y, "X: 0", "Y: 64", "Z: 0");
