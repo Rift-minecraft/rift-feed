@@ -1,6 +1,18 @@
 {
   "announcements": [
     {
+      "id": "mvrp3t9pwije",
+      "type": "update",
+      "title": "Rift Launcher 1.4.0 ist da!",
+      "message": "Ein neues Update steht bereit.",
+      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v1.4.0/rift-update-1.4.0.zip",
+      "version": "1.4.0",
+      "mandatory": false,
+      "hot": true,
+      "sha256": "50c7e141e35ecb0fb2113d7b5fe4c54eb5e430c52af13d0e3c35ddb47ca77c98",
+      "createdAt": "2026-10-28T05:50:17.581Z"
+    },
+    {
       "id": "mvqw4y08x4qo",
       "type": "news",
       "title": "emil ist lost",
