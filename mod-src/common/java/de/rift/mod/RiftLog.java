@@ -12,6 +12,7 @@ public final class RiftLog {
     public static volatile int hudFrames = 0;
     public static volatile int ticks = 0;
     private RiftLog() {}
+    public static String snip(String s) { if (s == null) return ""; s = s.replaceAll("\\s+", " ").trim(); return s.length() > 70 ? s.substring(0, 70) : s; }
     public static void err(String s) {
         if (s == null || s.equals(last)) return; last = s;
         try { Files.writeString(Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("rift-debug.log"), java.time.LocalTime.now() + " " + s + "\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND); } catch (Throwable ignored) {}

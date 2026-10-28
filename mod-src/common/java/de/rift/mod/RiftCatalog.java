@@ -70,7 +70,7 @@ public final class RiftCatalog {
         if (au != null) b.addProperty("aura", au.aura); if (pe != null) b.addProperty("pet", pe.pet); if (bd != null) b.addProperty("badge", bd.badge);
         if (cape != null && cape.capePng != null) { b.addProperty("capePng", cape.capePng); if (!cape.capeFrames.isEmpty()) { JsonArray a = new JsonArray(); for (String f : cape.capeFrames) a.add(f); b.add("capeFrames", a); } }
         HttpResponse<String> r = HTTP.send(HttpRequest.newBuilder(URI.create(api + "/v1/cosmetics")).timeout(Duration.ofSeconds(10)).header("Authorization", "Bearer " + mc.getUser().getAccessToken()).header("Content-Type", "application/json").PUT(HttpRequest.BodyPublishers.ofString(b.toString())).build(), HttpResponse.BodyHandlers.ofString());
-        status = r.statusCode() == 200 ? "Gespeichert ✓" : "Cloud-Fehler " + r.statusCode();
+        status = r.statusCode() == 200 ? "Gespeichert ✓" : "Cloud-Fehler " + r.statusCode() + (r.statusCode() == 401 ? " (Login abgelaufen - Launcher neu starten)" : "") + " " + RiftLog.snip(r.body());
         if (r.statusCode() == 200) RiftCosmetics.refresh();
     }
 }
