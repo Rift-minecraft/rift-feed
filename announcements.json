@@ -1,16 +1,16 @@
 {
   "announcements": [
     {
-      "id": "mvsimf549mi5",
+      "id": "mvsj40pyra90",
       "type": "update",
-      "title": "Rift Launcher 2.5.1 ist da!",
+      "title": "Rift Launcher 2.5.2 ist da!",
       "message": "Ein neues Update steht bereit.",
-      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v2.5.1/rift-update-2.5.1.zip",
-      "version": "2.5.1",
+      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v2.5.2/rift-update-2.5.2.zip",
+      "version": "2.5.2",
       "mandatory": false,
       "hot": true,
-      "sha256": "403f5e83e8843baf43931a5a5352384c187672202633015ca5ca79fc5dd35f3a",
-      "createdAt": "2026-10-28T19:36:34.600Z"
+      "sha256": "4632350b3a948c41588f7c738355f4c15e3263dfbc6c8af5f96abb789b0ad400",
+      "createdAt": "2026-10-28T19:50:15.718Z"
     },
     {
       "id": "mvs2gc9p770n",
