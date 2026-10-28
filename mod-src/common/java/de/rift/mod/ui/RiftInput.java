@@ -19,7 +19,8 @@ public final class RiftInput {
         boolean k = false;
         if (c.markerMouse >= 0) k = GLFW.glfwGetMouseButton(win, c.markerMouse) == GLFW.GLFW_PRESS;
         if (c.markerKey > 0) k |= GLFW.glfwGetKey(win, c.markerKey) == GLFW.GLFW_PRESS;
-        if (k && !markDown && mc.screen == null) RiftMarkers.place(mc, GLFW.glfwGetKey(win, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS);
+        if (k && !markDown && mc.screen == null && RiftMarkers.nearestOwn(mc, 10) != null && GLFW.glfwGetKey(win, GLFW.GLFW_KEY_LEFT_CONTROL) != GLFW.GLFW_PRESS) mc.setScreen(new RiftMarkerEdit(RiftMarkers.nearestOwn(mc, 10)));
+        else if (k && !markDown && mc.screen == null) RiftMarkers.place(mc, GLFW.glfwGetKey(win, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS);
         markDown = k;
         boolean e = GLFW.glfwGetKey(win, c.emoteKey) == GLFW.GLFW_PRESS;
         if (e && !emoteDown && mc.screen == null) mc.setScreen(new RiftEmoteWheel());

@@ -24,6 +24,7 @@ jobs:
           rm -rf src
           mkdir -p src/main/java src/main/resources
           cp -r ../mod-src/common/java/* src/main/java/
+          cp -r ../mod-src/common/resources/* src/main/resources/
           cp -r ../mod-src/fabric/java/* src/main/java/
           cp -r ../mod-src/fabric/resources/* src/main/resources/
           # Offizielle Mojang-Namen verwenden (der Code nutzt diese)
@@ -91,6 +92,7 @@ jobs:
           rm -rf src
           mkdir -p src/main/java src/main/resources src/main/templates
           cp -r ../mod-src/common/java/* src/main/java/
+          cp -r ../mod-src/common/resources/* src/main/resources/
           cp -r ../mod-src/neoforge/java/* src/main/java/
           cp -r ../mod-src/neoforge/resources/* src/main/resources/
           cp -r ../mod-src/neoforge/templates/* src/main/templates/

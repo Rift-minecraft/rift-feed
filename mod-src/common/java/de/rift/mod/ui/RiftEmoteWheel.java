@@ -15,7 +15,7 @@ import java.util.List;
 public class RiftEmoteWheel extends Screen {
     private int hover = -1;
     private final List<String> ids;
-    public RiftEmoteWheel() { super(Component.literal("Emotes")); List<String> m = RiftEmotes.MY; ids = (m == null || m.isEmpty()) ? List.of("wave", "dance") : m; }
+    public RiftEmoteWheel() { super(Component.literal("Emotes")); List<String> m = RiftEmotes.wheel(); ids = (m == null || m.isEmpty()) ? List.of("wave", "dance") : m; }
     @Override public boolean isPauseScreen() { return false; }
 
     private int[] slot(int i) {

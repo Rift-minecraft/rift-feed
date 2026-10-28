@@ -2,6 +2,10 @@ package de.rift.mod.ui;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
 
 /** Kleine Zeichenhelfer: abgerundete Flächen und Text im Rift-Stil. */
 public final class RiftDraw {
@@ -27,9 +31,23 @@ public final class RiftDraw {
         round(g, x, y, x + w, y + h, c.rounding, argb(0x0B0B10, c.alpha));
     }
 
-    public static void text(GuiGraphics g, String s, int x, int y, int rgb) {
-        g.drawString(Minecraft.getInstance().font, s, x, y, 0xFF000000 | rgb, RiftConfig.get().shadow);
+    private static final FontDescription RIFT_FONT = new FontDescription.Resource(Identifier.fromNamespaceAndPath("rift", "ui"));
+    public static Component comp(String s) {
+        Component c = Component.literal(s);
+        return RiftConfig.get().riftFont ? c.copy().withStyle(Style.EMPTY.withFont(RIFT_FONT)) : c;
     }
-
-    public static int width(String s) { return Minecraft.getInstance().font.width(s); }
+    public static void text(GuiGraphics g, String s, int x, int y, int rgb) {
+        g.drawString(Minecraft.getInstance().font, comp(s), x, y, 0xFF000000 | rgb, RiftConfig.get().shadow);
+    }
+    public static int width(String s) { return Minecraft.getInstance().font.width(comp(s)); }
+    /** Text mit automatischem Umbruch; liefert die Hoehe. */
+    public static int wrap(GuiGraphics g, String s, int x, int y, int maxW, int rgb) {
+        StringBuilder line = new StringBuilder(); int yy = y;
+        for (String w : s.split(" ")) {
+            String t = line.length() == 0 ? w : line + " " + w;
+            if (width(t) > maxW && line.length() > 0) { text(g, line.toString(), x, yy, rgb); yy += 11; line = new StringBuilder(w); } else line = new StringBuilder(t);
+        }
+        if (line.length() > 0) { text(g, line.toString(), x, yy, rgb); yy += 11; }
+        return yy - y;
+    }
 }

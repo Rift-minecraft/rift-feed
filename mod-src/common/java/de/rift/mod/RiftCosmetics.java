@@ -48,10 +48,11 @@ public final class RiftCosmetics {
             if (Files.exists(f)) {
                 JsonObject cfg = JsonParser.parseString(Files.readString(f)).getAsJsonObject();
                 api = cfg.get("api").getAsString().replaceAll("/$", "");
+                if (cfg.has("emotesOwned")) { List<String> l = new ArrayList<>(); for (JsonElement e : cfg.getAsJsonArray("emotesOwned")) l.add(e.getAsString()); RiftEmotes.OWNED = l; }
                 if (cfg.has("emotes")) { List<String> l = new ArrayList<>(); for (JsonElement e : cfg.getAsJsonArray("emotes")) l.add(e.getAsString()); RiftEmotes.MY = l; }
             }
         } catch (Exception ignored) {}
-        if (api.isEmpty()) return;
+        if (api.isEmpty()) { RiftLog.cloud = "Cloud: keine Adresse (im Launcher Einstellungen → Cloud eintragen)"; return; }
         RiftNet.start(api);
         Thread t = new Thread(() -> {
             while (true) {
@@ -76,12 +77,14 @@ public final class RiftCosmetics {
         try {
             String q = String.join(",", ids.subList(0, Math.min(50, ids.size())));
             HttpResponse<String> r = HTTP.send(HttpRequest.newBuilder(URI.create(api + "/v1/cosmetics?uuids=" + q)).timeout(Duration.ofSeconds(8)).GET().build(), HttpResponse.BodyHandlers.ofString());
-            if (r.statusCode() != 200) return;
+            if (r.statusCode() != 200) { RiftLog.cloud = "Cloud: Fehler HTTP " + r.statusCode(); return; }
             JsonObject all = JsonParser.parseString(r.body()).getAsJsonObject();
             Set<String> have = new HashSet<>();
             for (Map.Entry<String, JsonElement> e : all.entrySet()) { parse(e.getKey(), e.getValue().getAsJsonObject()); have.add(e.getKey()); }
             for (String id : ids) if (!have.contains(id)) DATA.remove(id);
-        } catch (Throwable ignored) {}
+            Minecraft m = Minecraft.getInstance(); String me = m.player == null ? "" : hex(m.player.getUUID());
+            RiftLog.cloud = "Cloud: OK, " + all.size() + " von " + ids.size() + " Spielern haben Cosmetics; du: " + (have.contains(me) ? "ja" : "NEIN (im Launcher einmal starten/anmelden)");
+        } catch (Throwable t) { RiftLog.cloud = "Cloud: Verbindung fehlgeschlagen (" + t.getClass().getSimpleName() + ")"; }
     }
 
     private static void parse(String id, JsonObject o) {

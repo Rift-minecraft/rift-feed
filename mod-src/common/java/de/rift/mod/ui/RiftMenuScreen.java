@@ -12,10 +12,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.DoubleConsumer;
+import de.rift.mod.RiftEmotes;
 
 /** Rift-Menü im Spiel: Widget-Editor (Liste links, Vorschau rechts), Design, Marker. */
 public class RiftMenuScreen extends Screen {
-    private static final String[] TABS = {"Widgets", "Design", "Marker", "Cosmetics"};
+    private static final String[] TABS = {"Widgets", "Design", "Marker", "Emotes", "Cosmetics"};
     private static final int[] SWATCH = {0x7DD3FC, 0x4ADE80, 0xFBBF24, 0xF87171, 0xC084FC, 0xFFFFFF};
 
     private record Hit(int x1, int y1, int x2, int y2, Runnable click, DoubleConsumer drag) {}
@@ -55,7 +56,8 @@ public class RiftMenuScreen extends Screen {
         // grosse Box um alles (leicht durchsichtig, dahinter unscharf)
         RiftDraw.round(g, 6, 6, width - 6, height - 6, 8, RiftDraw.argb(0x07080D, (int) (150 * a)));
         // Tabs
-        int tw = 70, tx = width / 2 - TABS.length * tw / 2;
+        int tw = 74, tx = width / 2 - TABS.length * tw / 2;
+        RiftDraw.text(g, "RIFT", 18, 14, c.accent);
         for (int i = 0; i < TABS.length; i++) {
             int x = tx + i * tw, i2 = i; boolean on = tab == i, hov = mx >= x && mx < x + tw && my >= 8 && my < 28;
             RiftDraw.text(g, TABS[i], x + (tw - RiftDraw.width(TABS[i])) / 2, 14, on ? c.accent : hov ? 0xFFFFFF : 0x9CA3AF);
@@ -66,7 +68,10 @@ public class RiftMenuScreen extends Screen {
         if (tab == 0) widgetsTab(g, mx, my, c);
         else if (tab == 1) designTab(g, mx, my, c);
         else if (tab == 2) markerTab(g, mx, my, c);
+        else if (tab == 3) emoteTab(g, mx, my, c);
         else cosTab(g, mx, my, c);
+        { String st = de.rift.mod.RiftLog.last.isEmpty() ? "Rift-Mod \u00b7 HUD-Frames: " + de.rift.mod.RiftLog.hudFrames : "Fehler: " + de.rift.mod.RiftLog.last;
+          RiftDraw.text(g, trunc(st, width - 330), 14, height - 32, de.rift.mod.RiftLog.last.isEmpty() ? 0x6B7280 : 0xF87171); }
         RiftDraw.text(g, "R oder Esc: schließen", 14, height - 20, 0x9CA3AF);
         int bw = 128, bx = width - bw - 14, by = height - 24; boolean bh = mx >= bx && mx < bx + bw && my >= by && my < by + 16;
         RiftDraw.round(g, bx, by, bx + bw, by + 16, 4, bh ? RiftDraw.argb(c.accent, 110) : 0x40FFFFFF);
@@ -97,7 +102,7 @@ public class RiftMenuScreen extends Screen {
         g.disableScissor();
         maxScroll = Math.max(0, y + scroll - (ly + lh));
         // Vorschau
-        int ax = lx + lw + 12, ay = 38, aw = width - ax - 18, ah = height - 84;
+        int ax = lx + lw + 12, ay = 38, aw = width - ax - 18, ah = height - 104;
         float s = Math.min(aw / (float) width, ah / (float) height); pvS = s; pvW = Math.round(width * s); pvH = Math.round(height * s);
         pvX = ax + (aw - pvW) / 2; pvY = ay + (ah - pvH) / 2;
         wood(g, pvX, pvY, pvX + pvW, pvY + pvH, 6);
@@ -110,12 +115,16 @@ public class RiftMenuScreen extends Screen {
         for (RiftWidgets.Def d : RiftWidgets.ALL) {
             RiftConfig.W w = c.w(d.id()); if (!w.on) continue;
             int px = Math.round(w.x * width), py = Math.round(w.y * height);
-            int[] sz; try { sz = d.drawer().draw(g, mc, px, py); } catch (Throwable t) { sz = new int[]{40, 14}; }
+            float ws = w.s <= 0 ? 1f : w.s; int[] sz;
+            g.pose().pushMatrix(); g.pose().translate((float) px, (float) py); g.pose().scale(ws, ws);
+            try { sz = d.drawer().draw(g, mc, 0, 0); } catch (Throwable t) { sz = new int[]{40, 14}; de.rift.mod.RiftLog.err("Widget " + d.id() + ": " + t); } finally { g.pose().popMatrix(); }
+            sz = new int[]{Math.round(sz[0] * ws), Math.round(sz[1] * ws)};
             rects.put(d.id(), new int[]{px, py, sz[0], sz[1]});
             if (d.id().equals(selected)) outline(g, px - 1, py - 1, px + sz[0] + 1, py + sz[1] + 1, 0xFF000000 | c.accent);
         }
         g.pose().popMatrix(); g.disableScissor();
-        RiftDraw.text(g, "Links ein Widget antippen, dann in der Vorschau verschieben", pvX, pvY + pvH + 10, 0x9CA3AF);
+        RiftDraw.text(g, "Widget links antippen, dann in der Vorschau ziehen", pvX, pvY + pvH + 10, 0x9CA3AF);
+        { RiftConfig.W sw = c.w(selected); int bx = pvX + Math.max(0, pvW - 150); slider(g, bx, pvY + pvH + 22, 150, "Gr\u00f6\u00dfe", Math.round((sw.s <= 0 ? 1f : sw.s) * 100), 50, 250, v -> { sw.s = (float) (Math.round(v / 5.0) * 5) / 100f; }); }
     }
     private int maxScroll = 0;
 
@@ -133,11 +142,12 @@ public class RiftMenuScreen extends Screen {
     /* ---------------- Design ---------------- */
     private void designTab(GuiGraphics g, int mx, int my, RiftConfig c) {
         int x = width / 2 - 130, y = 50;
-        RiftDraw.round(g, x - 12, y - 12, x + 262, y + 190, 6, RiftDraw.argb(0x0B0B10, 120));
+        RiftDraw.round(g, x - 12, y - 12, x + 262, y + 212, 6, RiftDraw.argb(0x0B0B10, 120));
         RiftDraw.text(g, "Design", x, y, 0xFFFFFF); y += 18;
         slider(g, x, y, 220, "Eckenrundung", c.rounding, 0, 8, v -> { c.rounding = (int) Math.round(v); }); y += 30;
         slider(g, x, y, 220, "Transparenz (Hintergrund)", c.alpha, 20, 255, v -> { c.alpha = (int) Math.round(v); }); y += 30;
-        toggle(g, x, y, "Text-Schatten", c.shadow, () -> { c.shadow = !c.shadow; c.save(); }); y += 22;
+        toggle(g, x, y, "Text-Schatten", c.shadow, () -> { c.shadow = !c.shadow; c.save(); }); y += 20;
+        toggle(g, x, y, "Rift-Schrift (aus = Minecraft-Schrift)", c.riftFont, () -> { c.riftFont = !c.riftFont; c.save(); }); y += 22;
         RiftDraw.text(g, "Akzentfarbe", x, y, 0x9CA3AF); y += 12;
         for (int i = 0; i < SWATCH.length; i++) { int sx = x + i * 24, col = SWATCH[i]; RiftDraw.round(g, sx, y, sx + 18, y + 18, 4, 0xFF000000 | col); if (c.accent == col) outline(g, sx - 2, y - 2, sx + 20, y + 20, 0xFFFFFFFF); hit(sx, y, sx + 18, y + 18, () -> { c.accent = col; c.save(); }); }
         y += 30;
@@ -149,7 +159,7 @@ public class RiftMenuScreen extends Screen {
     /* ---------------- Marker ---------------- */
     private void markerTab(GuiGraphics g, int mx, int my, RiftConfig c) {
         int x = width / 2 - 130, y = 50;
-        RiftDraw.round(g, x - 12, y - 12, x + 262, y + 250, 6, RiftDraw.argb(0x0B0B10, 120));
+        RiftDraw.round(g, x - 12, y - 12, x + 262, y + 290, 6, RiftDraw.argb(0x0B0B10, 120));
         RiftDraw.text(g, "Marker", x, y, 0xFFFFFF); y += 18;
         toggle(g, x, y, "Marker aktiv", c.markerOn, () -> { c.markerOn = !c.markerOn; c.save(); }); y += 24;
         RiftDraw.text(g, "Taste zum Markieren", x, y, 0x9CA3AF); y += 12;
@@ -157,8 +167,7 @@ public class RiftMenuScreen extends Screen {
         RiftDraw.round(g, x, y, x + 220, y + 18, 4, capturing ? RiftDraw.argb(c.accent, 90) : 0x33FFFFFF); RiftDraw.text(g, label, x + 8, y + 5, 0xFFFFFF);
         hit(x, y, x + 220, y + 18, () -> capturing = true); y += 28;
         slider(g, x, y, 220, "Dauer (Sekunden)", c.markerSeconds, 10, 300, v -> { c.markerSeconds = (int) Math.round(v); }); y += 30;
-        RiftDraw.text(g, "Mausrad: Marker f\u00fcr alle Rift-Spieler (mit Kopf). Strg + Mausrad: privater", x, y, 0x6B7280); y += 11;
-        RiftDraw.text(g, "Marker, nur f\u00fcr dich sichtbar.", x, y, 0x6B7280); y += 18;
+        y += RiftDraw.wrap(g, "Mausrad: Marker f\u00fcr alle Rift-Spieler (mit Kopf). Strg + Mausrad: privater Marker, nur f\u00fcr dich. Taste dr\u00fccken, wenn du weniger als 10 Bl\u00f6cke vom eigenen Marker entfernt bist: bearbeiten.", x, y, 240, 0x6B7280) + 6;
         RiftDraw.text(g, "Privater Marker: Name", x, y, 0x9CA3AF); y += 12;
         nameBox.setX(x); nameBox.setY(y); nameBox.visible = true; nameBox.render(g, mx, my, 0f); y += 24;
         RiftDraw.text(g, "Privater Marker: Symbol", x, y, 0x9CA3AF); y += 12;
@@ -188,13 +197,28 @@ public class RiftMenuScreen extends Screen {
             g.drawString(mc.font, n, fx + fw / 2 - w / 2, fy + 5, 0xFFFFFFFF, true);
         }
         int x = fx + fw + 24, y = fy + 4;
-        RiftDraw.round(g, x - 10, fy - 6, x + 190, fy + 120, 6, RiftDraw.argb(0x0B0B10, 120));
+        RiftDraw.round(g, x - 10, fy - 6, x + 190, fy + 150, 6, RiftDraw.argb(0x0B0B10, 120));
         RiftDraw.text(g, "Deine Cosmetics", x, y, 0xFFFFFF); y += 16;
-        RiftDraw.text(g, "Links siehst du dich so, wie dich andere", x, y, 0x9CA3AF); y += 11;
-        RiftDraw.text(g, "Rift-Spieler sehen (Nametag, Cape).", x, y, 0x9CA3AF); y += 18;
-        RiftDraw.text(g, "Auswählen & kaufen: im Rift-Launcher.", x, y, 0x9CA3AF); y += 11;
-        RiftDraw.text(g, "Änderungen erscheinen hier nach ~15 s.", x, y, 0x6B7280);
+        y += RiftDraw.wrap(g, "Links siehst du dich so, wie dich andere Rift-Spieler sehen. Ausw\u00e4hlen und kaufen: im Rift-Launcher. \u00c4nderungen erscheinen nach ca. 15 Sekunden.", x, y, 170, 0x9CA3AF) + 8;
+        y += RiftDraw.wrap(g, de.rift.mod.RiftLog.cloud, x, y, 170, 0x7DD3FC);
     }
+    /* ---------------- Emotes ---------------- */
+    private void emoteTab(GuiGraphics g, int mx, int my, RiftConfig c) {
+        int x = width / 2 - 150, y = 50;
+        RiftDraw.round(g, x - 12, y - 12, x + 312, y + 60 + ((RiftEmotes.owned().size() + 1) / 2) * 24, 6, RiftDraw.argb(0x0B0B10, 120));
+        RiftDraw.text(g, "Emote-Rad (Taste B)", x, y, 0xFFFFFF); y += 14;
+        y += RiftDraw.wrap(g, "Klicke Emotes an, um sie ins Rad zu legen oder zu entfernen (max. 8). Neue Emotes gibt es im Launcher.", x, y, 310, 0x9CA3AF) + 4;
+        java.util.List<String> wl = new java.util.ArrayList<>(RiftEmotes.wheel()); int i = 0;
+        for (String id : RiftEmotes.owned()) {
+            int cx = x + (i % 2) * 160, cy = y + (i / 2) * 24; i++; boolean on = wl.contains(id);
+            RiftDraw.round(g, cx, cy, cx + 150, cy + 20, 5, on ? RiftDraw.argb(c.accent, 150) : 0x33FFFFFF);
+            RiftDraw.text(g, RiftEmotes.NAMES.getOrDefault(id, id), cx + 8, cy + 6, 0xFFFFFF);
+            if (on) RiftDraw.text(g, "\u2713", cx + 134, cy + 6, 0xFFFFFF);
+            hit(cx, cy, cx + 150, cy + 20, () -> { java.util.List<String> w2 = new java.util.ArrayList<>(RiftEmotes.wheel()); if (!w2.remove(id)) { if (w2.size() >= 8) return; w2.add(id); } c.wheel = w2; c.save(); });
+        }
+    }
+    private static String trunc(String s, int px) { while (s.length() > 4 && RiftDraw.width(s) > px) s = s.substring(0, s.length() - 2); return s; }
+
     /** Rahmen aus Eichenholz um einen Bereich. */
     private static void wood(GuiGraphics g, int x1, int y1, int x2, int y2, int t) {
         int ox1 = x1 - t, oy1 = y1 - t, ox2 = x2 + t, oy2 = y2 + t;
@@ -264,6 +288,7 @@ public class RiftMenuScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double x, double y, double sx, double sy) {
+        if (tab == 0 && x >= pvX && x < pvX + pvW && y >= pvY && y < pvY + pvH) { RiftConfig.W sw = RiftConfig.get().w(selected); sw.s = Math.max(.5f, Math.min(2.5f, (sw.s <= 0 ? 1f : sw.s) + (float) sy * .1f)); RiftConfig.get().save(); return true; }
         scroll = (int) Math.max(0, Math.min(maxScroll, scroll - sy * 14)); return true;
     }
 

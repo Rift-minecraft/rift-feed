@@ -9,7 +9,7 @@ import java.util.Map;
 
 /** Einstellungen des Rift-Menüs (config/rift-client.json). */
 public final class RiftConfig {
-    public static final class W { public boolean on; public float x, y; }
+    public static final class W { public boolean on; public float x, y; public float s = 1f; }
 
     public Map<String, W> widgets = new LinkedHashMap<>();
     public int rounding = 4;          // Eckenrundung 0..8
@@ -22,6 +22,8 @@ public final class RiftConfig {
     public int markerSeconds = 90;
     public int menuKey = 82;          // R
     public int ver = 0;
+    public boolean riftFont = true;
+    public java.util.List<String> wheel = null;   // eigenes Emote-Rad (sonst das aus dem Launcher)
     public int emoteKey = 66;         // B
     public String privateName = "Marker";
     public int privateIcon = 0;
@@ -37,7 +39,7 @@ public final class RiftConfig {
             } catch (Throwable ignored) {}
             if (I == null) I = new RiftConfig();
             if (I.widgets == null) I.widgets = new LinkedHashMap<>();
-            if (I.ver < 2) { I.ver = 2; I.menuKey = 82; for (W w : I.widgets.values()) w.on = false; }
+            if (I.ver < 3) { I.ver = 3; I.menuKey = 82; for (W w : I.widgets.values()) w.on = false; }
             if (I.widgets.isEmpty()) {   // Standard-Widgets
                 def("fps", 0.01f, 0.02f); def("coords", 0.01f, 0.07f); def("direction", 0.36f, 0.01f); def("bossbar", 0.36f, 0.03f);
             }

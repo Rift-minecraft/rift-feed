@@ -11,7 +11,7 @@ import java.util.List;
 
 /** Marker (Mausrad-Klick): zeigt Ziel und Entfernung in Blöcken in der Welt und auf der Richtungsleiste. */
 public final class RiftMarkers {
-    public static final class M { Vec3 pos; long at; int color; String name, id; java.util.UUID owner; boolean priv; int icon; }
+    public static final class M { public Vec3 pos; long at; public int color; public String name, id; public java.util.UUID owner; public boolean priv; public int icon; }
     private static final String[] ICONS = {"\u2666", "\u2605", "\u2691", "\u2620", "\u2665"};
     private static final List<M> LIST = new ArrayList<>();
     private static final int[] COLORS = {0x7DD3FC, 0xFBBF24, 0xF87171, 0x4ADE80, 0xC084FC};
@@ -24,19 +24,32 @@ public final class RiftMarkers {
         HitResult hr = mc.player.pick(512.0, 1.0f, false);
         if (hr == null || hr.getType() == HitResult.Type.MISS) return;
         M m = new M(); m.pos = hr.getLocation(); m.at = System.currentTimeMillis(); m.color = priv ? 0xFFFFFF : COLORS[next++ % COLORS.length]; m.name = priv ? c.privateName : mc.player.getName().getString();
-        m.priv = priv; m.icon = c.privateIcon; m.owner = mc.player.getUUID(); m.id = "m" + Long.toString(System.nanoTime() & 0xffffffL, 36);
+        m.priv = priv; m.icon = priv ? c.privateIcon : 0; m.owner = mc.player.getUUID(); m.id = "m" + Long.toString(System.nanoTime() & 0xffffffL, 36);
         synchronized (LIST) { if (LIST.size() >= 12) LIST.remove(0); LIST.add(m); }
         if (!priv) {   // an alle Rift-Spieler auf diesem Server senden
             com.google.gson.JsonObject o = new com.google.gson.JsonObject(); o.addProperty("t", "marker"); o.addProperty("id", m.id);
-            o.addProperty("x", m.pos.x); o.addProperty("y", m.pos.y); o.addProperty("z", m.pos.z); o.addProperty("col", m.color); o.addProperty("nm", m.name);
+            o.addProperty("x", m.pos.x); o.addProperty("y", m.pos.y); o.addProperty("z", m.pos.z); o.addProperty("col", m.color); o.addProperty("nm", m.name); o.addProperty("ic", m.icon);
             de.rift.mod.RiftNet.send(o);
         }
     }
-    public static void addRemote(java.util.UUID owner, String name, String id, double x, double y, double z, int col) {
-        M m = new M(); m.pos = new Vec3(x, y, z); m.at = System.currentTimeMillis(); m.color = col == 0 ? 0x7DD3FC : col; m.name = name; m.id = id; m.owner = owner;
+    public static void addRemote(java.util.UUID owner, String sender, String id, double x, double y, double z, int col, String nm, int ic) {
+        M m = new M(); m.pos = new Vec3(x, y, z); m.at = System.currentTimeMillis(); m.color = col == 0 ? 0x7DD3FC : col; m.name = (nm == null || nm.isEmpty()) ? sender : nm; m.id = id; m.owner = owner; m.icon = ic;
         synchronized (LIST) { LIST.removeIf(o -> owner.equals(o.owner) && id.equals(o.id)); if (LIST.size() >= 24) LIST.remove(0); LIST.add(m); }
     }
     public static void removeRemote(java.util.UUID owner, String id) { synchronized (LIST) { LIST.removeIf(o -> owner.equals(o.owner) && id.equals(o.id)); } }
+
+    /** Eigener (oder privater) Marker in der Naehe - zum Bearbeiten. */
+    public static M nearestOwn(Minecraft mc, double max) {
+        if (mc.player == null) return null; M best = null; double bd = max * max;
+        synchronized (LIST) { for (M m : LIST) { if (!(m.priv || mc.player.getUUID().equals(m.owner))) continue; double d = m.pos.distanceToSqr(mc.player.position()); if (d < bd) { bd = d; best = m; } } }
+        return best;
+    }
+    public static void remove(M m) { synchronized (LIST) { LIST.remove(m); } if (!m.priv) { com.google.gson.JsonObject o = new com.google.gson.JsonObject(); o.addProperty("t", "unmarker"); o.addProperty("id", m.id); de.rift.mod.RiftNet.send(o); } }
+    public static void resend(M m) {
+        if (m.priv) return; com.google.gson.JsonObject o = new com.google.gson.JsonObject(); o.addProperty("t", "marker"); o.addProperty("id", m.id);
+        o.addProperty("x", m.pos.x); o.addProperty("y", m.pos.y); o.addProperty("z", m.pos.z); o.addProperty("col", m.color); o.addProperty("nm", m.name); o.addProperty("ic", m.icon); de.rift.mod.RiftNet.send(o);
+    }
+    public static int[] palette() { return COLORS; }
 
     private static void prune() {
         long ttl = RiftConfig.get().markerSeconds * 1000L, now = System.currentTimeMillis();
@@ -69,9 +82,10 @@ public final class RiftMarkers {
                 if (m.name != null && !m.name.isEmpty()) RiftDraw.text(g, m.name, px - RiftDraw.width(m.name) / 2, py + 7, 0xE5E7EB);
                 RiftDraw.text(g, t, px - RiftDraw.width(t) / 2, py + 17, 0x9CA3AF);
             } else {
-                diamond(g, px, py, 5, 0xFF000000 | m.color);
+                if (m.icon > 0) RiftDraw.text(g, ICONS[Math.floorMod(m.icon, ICONS.length)], px - 4, py - 4, m.color); else diamond(g, px, py, 5, 0xFF000000 | m.color);
                 if (m.owner != null) head(g, mc, m.owner, px - 6, py - 20, 12);
                 RiftDraw.text(g, t, px - RiftDraw.width(t) / 2, py + 8, 0xFFFFFF);
+                if (m.name != null && !m.name.isEmpty()) RiftDraw.text(g, m.name, px - RiftDraw.width(m.name) / 2, py + 18, 0xE5E7EB);
             }
         }
     }

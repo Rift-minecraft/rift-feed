@@ -78,7 +78,8 @@ public final class RiftNet {
             case "marker" -> {
                 String id = o.get("id").getAsString(), name = o.has("n") ? o.get("n").getAsString() : "";
                 double x = o.get("x").getAsDouble(), y = o.get("y").getAsDouble(), z = o.get("z").getAsDouble(); int col = o.get("col").getAsInt();
-                mc.execute(() -> de.rift.mod.ui.RiftMarkers.addRemote(u, name, id, x, y, z, col));
+                String nm = o.has("nm") ? o.get("nm").getAsString() : ""; int ic = o.has("ic") ? o.get("ic").getAsInt() : 0;
+                mc.execute(() -> de.rift.mod.ui.RiftMarkers.addRemote(u, name, id, x, y, z, col, nm, ic));
             }
             case "unmarker" -> { String id = o.get("id").getAsString(); mc.execute(() -> de.rift.mod.ui.RiftMarkers.removeRemote(u, id)); }
             default -> {}

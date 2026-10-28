@@ -14,6 +14,9 @@ public final class RiftEmotes {
     public record Active(String id, long start) {}
     private static final Map<UUID, Active> ACTIVE = new ConcurrentHashMap<>();
     public static volatile List<String> MY = List.of("wave", "dance");
+    public static volatile List<String> OWNED = null;
+    public static List<String> owned() { List<String> o = OWNED; return (o == null || o.isEmpty()) ? new ArrayList<>(NAMES.keySet()) : o; }
+    public static List<String> wheel() { var w = de.rift.mod.ui.RiftConfig.get().wheel; return (w != null && !w.isEmpty()) ? w : MY; }
     private static final Map<String, Integer> DUR = new HashMap<>();
     public static final Map<String, String> NAMES = new LinkedHashMap<>();
     private static final Random RND = new Random();
