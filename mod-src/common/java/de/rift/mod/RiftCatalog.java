@@ -56,13 +56,13 @@ public final class RiftCatalog {
                 JsonObject eqf = new JsonObject(); for (String t : new String[]{"cape", "nametag", "aura", "pet", "badge"}) eqf.add(t, EQUIPPED.containsKey(t) ? new JsonPrimitive(EQUIPPED.get(t)) : JsonNull.INSTANCE);
                 Files.writeString(dir().resolve("rift-equip.json"), eqf.toString());
                 publish();
-            } catch (Throwable t) { status = "Speichern fehlgeschlagen: " + t.getClass().getSimpleName(); RiftLog.err("Equip: " + t); }
+            } catch (Throwable t) { status = "Can't reach server"; RiftLog.err("Equip: " + t); }
         }, "rift-equip").start();
     }
 
     private static void publish() throws Exception {
         Minecraft mc = Minecraft.getInstance(); String api = RiftCosmetics.api();
-        if (api == null || api.isEmpty() || mc.player == null) { status = (api == null || api.isEmpty()) ? "Keine Cloud-Adresse - Spiel ueber den Rift-Launcher starten" : "Nicht im Spiel"; return; }
+        if (api == null || api.isEmpty() || mc.player == null) { status = (api == null || api.isEmpty()) ? "Can't reach server" : "Can't reach server"; return; }
         JsonObject b = new JsonObject(); b.addProperty("uuid", mc.player.getUUID().toString().replace("-", "").toLowerCase());
         Item nt = byId(EQUIPPED.get("nametag")), cape = byId(EQUIPPED.get("cape")), au = byId(EQUIPPED.get("aura")), pe = byId(EQUIPPED.get("pet")), bd = byId(EQUIPPED.get("badge"));
         if (nt != null && nt.nametag != null) b.add("nametag", nt.nametag);
@@ -70,7 +70,7 @@ public final class RiftCatalog {
         if (au != null) b.addProperty("aura", au.aura); if (pe != null) b.addProperty("pet", pe.pet); if (bd != null) b.addProperty("badge", bd.badge);
         if (cape != null && cape.capePng != null) { b.addProperty("capePng", cape.capePng); if (!cape.capeFrames.isEmpty()) { JsonArray a = new JsonArray(); for (String f : cape.capeFrames) a.add(f); b.add("capeFrames", a); } }
         HttpResponse<String> r = HTTP.send(HttpRequest.newBuilder(URI.create(api + "/v1/cosmetics")).timeout(Duration.ofSeconds(10)).header("Authorization", "Bearer " + mc.getUser().getAccessToken()).header("Content-Type", "application/json").PUT(HttpRequest.BodyPublishers.ofString(b.toString())).build(), HttpResponse.BodyHandlers.ofString());
-        status = r.statusCode() == 200 ? "Gespeichert ✓" : "Server error";
+        status = r.statusCode() == 200 ? "Gespeichert ✓" : "Can't reach server";
         if (r.statusCode() != 200) RiftLog.err("Cloud PUT " + r.statusCode() + " " + RiftLog.snip(r.body()));
         if (r.statusCode() == 200) RiftCosmetics.refresh();
     }

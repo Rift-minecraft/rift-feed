@@ -60,7 +60,7 @@ public final class RiftCosmetics {
 
     public static void start() {
         loadCfg();
-        if (api.isEmpty()) RiftLog.cloud = "Cloud: keine Adresse (im Launcher Einstellungen → Cloud eintragen)";
+        if (api.isEmpty()) RiftLog.cloud = "Can't reach server (no cloud address)";
         Thread t = new Thread(() -> {
             while (true) {
                 try { Thread.sleep(api.isEmpty() ? 3000 : 15000); if (api.isEmpty()) loadCfg(); if (!api.isEmpty()) poll(); } catch (InterruptedException e) { return; } catch (Throwable ignored) {}
@@ -86,7 +86,7 @@ public final class RiftCosmetics {
         try {
             String q = String.join(",", ids.subList(0, Math.min(50, ids.size())));
             HttpResponse<String> r = HTTP.send(HttpRequest.newBuilder(URI.create(api + "/v1/cosmetics?uuids=" + q)).timeout(Duration.ofSeconds(8)).GET().build(), HttpResponse.BodyHandlers.ofString());
-            if (r.statusCode() != 200) { RiftLog.cloud = "Server error"; RiftLog.err("Cloud GET " + r.statusCode() + " " + RiftLog.snip(r.body())); return; }
+            if (r.statusCode() != 200) { RiftLog.cloud = "Can't reach server"; RiftLog.err("Cloud GET " + r.statusCode() + " " + RiftLog.snip(r.body())); return; }
             JsonObject all = JsonParser.parseString(r.body()).getAsJsonObject();
             Set<String> have = new HashSet<>();
             for (Map.Entry<String, JsonElement> e : all.entrySet()) { parse(e.getKey(), e.getValue().getAsJsonObject()); have.add(e.getKey()); }
