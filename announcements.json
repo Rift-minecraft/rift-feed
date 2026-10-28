@@ -1,6 +1,19 @@
 {
   "announcements": [
     {
+      "id": "mvsi9qw8ufcr",
+      "type": "update",
+      "title": "Rift Launcher 2.5.0 Beta zum Testen",
+      "message": "too lazy to write a changelog",
+      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v2.5.0/rift-update-2.5.0.zip",
+      "version": "2.5.0",
+      "mandatory": false,
+      "beta": true,
+      "hot": true,
+      "sha256": "11f531f894c767b033a02523b1bcbb8f76810161c08a47bdbbb16f6806f2f3c1",
+      "createdAt": "2026-10-28T19:26:43.304Z"
+    },
+    {
       "id": "mvshi4g8zfgr",
       "type": "update",
       "title": "Rift Launcher 2.4.6 ist da!",
