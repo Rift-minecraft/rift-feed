@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.DoubleConsumer;
 import de.rift.mod.RiftEmotes;
+import de.rift.mod.RiftCatalog;
+import de.rift.mod.RiftLog;
 
 /** Rift-Menü im Spiel: Widget-Editor (Liste links, Vorschau rechts), Design, Marker. */
 public class RiftMenuScreen extends Screen {
@@ -196,26 +198,40 @@ public class RiftMenuScreen extends Screen {
             int w = mc.font.width(n); RiftDraw.round(g, fx + fw / 2 - w / 2 - 4, fy + 3, fx + fw / 2 + w / 2 + 4, fy + 15, 3, 0x66000000);
             g.drawString(mc.font, n, fx + fw / 2 - w / 2, fy + 5, 0xFFFFFFFF, true);
         }
-        int x = fx + fw + 24, y = fy + 4;
-        RiftDraw.round(g, x - 10, fy - 6, x + 190, fy + 150, 6, RiftDraw.argb(0x0B0B10, 120));
-        RiftDraw.text(g, "Deine Cosmetics", x, y, 0xFFFFFF); y += 16;
-        y += RiftDraw.wrap(g, "Links siehst du dich so, wie dich andere Rift-Spieler sehen. Ausw\u00e4hlen und kaufen: im Rift-Launcher. \u00c4nderungen erscheinen nach ca. 15 Sekunden.", x, y, 170, 0x9CA3AF) + 8;
-        y += RiftDraw.wrap(g, de.rift.mod.RiftLog.cloud, x, y, 170, 0x7DD3FC);
-    }
-    /* ---------------- Emotes ---------------- */
-    private void emoteTab(GuiGraphics g, int mx, int my, RiftConfig c) {
-        int x = width / 2 - 150, y = 50;
-        RiftDraw.round(g, x - 12, y - 12, x + 312, y + 60 + ((RiftEmotes.owned().size() + 1) / 2) * 24, 6, RiftDraw.argb(0x0B0B10, 120));
-        RiftDraw.text(g, "Emote-Rad (Taste B)", x, y, 0xFFFFFF); y += 14;
-        y += RiftDraw.wrap(g, "Klicke Emotes an, um sie ins Rad zu legen oder zu entfernen (max. 8). Neue Emotes gibt es im Launcher.", x, y, 310, 0x9CA3AF) + 4;
-        java.util.List<String> wl = new java.util.ArrayList<>(RiftEmotes.wheel()); int i = 0;
-        for (String id : RiftEmotes.owned()) {
-            int cx = x + (i % 2) * 160, cy = y + (i / 2) * 24; i++; boolean on = wl.contains(id);
-            RiftDraw.round(g, cx, cy, cx + 150, cy + 20, 5, on ? RiftDraw.argb(c.accent, 150) : 0x33FFFFFF);
-            RiftDraw.text(g, RiftEmotes.NAMES.getOrDefault(id, id), cx + 8, cy + 6, 0xFFFFFF);
-            if (on) RiftDraw.text(g, "\u2713", cx + 134, cy + 6, 0xFFFFFF);
-            hit(cx, cy, cx + 150, cy + 20, () -> { java.util.List<String> w2 = new java.util.ArrayList<>(RiftEmotes.wheel()); if (!w2.remove(id)) { if (w2.size() >= 8) return; w2.add(id); } c.wheel = w2; c.save(); });
+        int x = fx + fw + 24, py = fy - 6, pw = Math.min(260, width - x - 16), ph = Math.max(120, height - py - 50);
+        RiftDraw.round(g, x - 10, py, x + pw, py + ph, 6, RiftDraw.argb(0x0B0B10, 120));
+        if (RiftCatalog.ITEMS.isEmpty() && RiftCatalog.status.isEmpty()) RiftCatalog.load();
+        String[][] types = {{"nametag", "Nametag"}, {"cape", "Cape"}, {"aura", "Aura"}, {"pet", "Pet"}};
+        int cx = x;
+        for (String[] t : types) {
+            int w = RiftDraw.width(t[1]) + 14; boolean on = cosType.equals(t[0]);
+            RiftDraw.round(g, cx, py + 6, cx + w, py + 22, 5, on ? RiftDraw.argb(c.accent, 160) : 0x33FFFFFF);
+            RiftDraw.text(g, t[1], cx + 7, py + 11, 0xFFFFFF); String tt = t[0]; hit(cx, py + 6, cx + w, py + 22, () -> { cosType = tt; cosScroll = 0; });
+            cx += w + 4;
         }
+        int ly = py + 28, lh = ph - 52; java.util.List<RiftCatalog.Item> list = RiftCatalog.of(cosType);
+        g.enableScissor(x - 6, ly, x + pw - 4, ly + lh);
+        int yy = ly - cosScroll; String cur = RiftCatalog.EQUIPPED.get(cosType);
+        yy = row(g, mx, my, x, yy, pw - 18, "Keine Auswahl", 0x9CA3AF, cur == null, ly, lh, () -> RiftCatalog.equip(cosType, null));
+        for (RiftCatalog.Item it : list) yy = row(g, mx, my, x, yy, pw - 18, it.name == null ? it.id : it.name, rarityCol(it.rarity), it.id.equals(cur), ly, lh, () -> RiftCatalog.equip(it.type, it.id));
+        g.disableScissor();
+        cosMax = Math.max(0, yy + cosScroll - (ly + lh));
+        String st = RiftCatalog.status.isEmpty() ? RiftLog.cloud : RiftCatalog.status;
+        RiftDraw.text(g, trunc(st, pw), x, py + ph - 14, 0x7DD3FC);
+    }
+    private int cosScroll = 0, cosMax = 0; private String cosType = "nametag";
+    private int row(GuiGraphics g, int mx, int my, int x, int y, int w, String name, int col, boolean on, int ly, int lh, Runnable click) {
+        boolean hov = mx >= x - 6 && mx < x + w && my >= y && my < y + 18 && my >= ly && my < ly + lh;
+        RiftDraw.round(g, x - 6, y, x + w, y + 18, 4, on ? RiftDraw.argb(RiftConfig.get().accent, 130) : hov ? 0x33FFFFFF : 0x1AFFFFFF);
+        g.fill(x - 2, y + 5, x + 2, y + 13, 0xFF000000 | col);
+        RiftDraw.text(g, trunc(name, w - 40), x + 8, y + 5, 0xFFFFFF);
+        if (on) RiftDraw.text(g, "\u2713", x + w - 14, y + 5, 0xFFFFFF);
+        if (y + 18 > ly && y < ly + lh) hit(x - 6, Math.max(y, ly), x + w, Math.min(y + 18, ly + lh), click);
+        return y + 20;
+    }
+    private static int rarityCol(String r) {
+        if (r == null) return 0x9CA3AF;
+        return switch (r) { case "rare" -> 0x60A5FA; case "epic" -> 0xC084FC; case "legendary" -> 0xFBBF24; case "mythic" -> 0xF9A8D4; case "plus" -> 0x22C55E; case "event" -> 0xFB923C; case "secret" -> 0xF87171; default -> 0xE5E7EB; };
     }
     private static String trunc(String s, int px) { while (s.length() > 4 && RiftDraw.width(s) > px) s = s.substring(0, s.length() - 2); return s; }
 
@@ -288,6 +304,7 @@ public class RiftMenuScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double x, double y, double sx, double sy) {
+        if (tab == 4) { cosScroll = (int) Math.max(0, Math.min(cosMax, cosScroll - sy * 18)); return true; }
         if (tab == 0 && x >= pvX && x < pvX + pvW && y >= pvY && y < pvY + pvH) { RiftConfig.W sw = RiftConfig.get().w(selected); sw.s = Math.max(.5f, Math.min(2.5f, (sw.s <= 0 ? 1f : sw.s) + (float) sy * .1f)); RiftConfig.get().save(); return true; }
         scroll = (int) Math.max(0, Math.min(maxScroll, scroll - sy * 14)); return true;
     }

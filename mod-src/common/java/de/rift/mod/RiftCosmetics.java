@@ -62,6 +62,9 @@ public final class RiftCosmetics {
         t.setDaemon(true); t.start();
     }
 
+    public static String api() { return api; }
+    public static void refresh() { try { poll(); } catch (Throwable ignored) {} }
+
     private static void poll() {
         Minecraft mc = Minecraft.getInstance();
         List<String> ids = new ArrayList<>();
