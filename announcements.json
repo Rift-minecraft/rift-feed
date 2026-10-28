@@ -1,3 +1,5 @@
+{
+  "announcements": [
     {
       "id": "mvs0hojg1ln2",
       "type": "update",
@@ -9,6 +11,16 @@
       "hot": true,
       "sha256": "f1a25b54d293bf0dcef35fba68d55953d53d615933368f14ef0d14d652b0b4ce",
       "createdAt": "2026-10-28T11:09:00.412Z"
+    },
+    {
+      "id": "mvqw4y08x4qo",
+      "type": "news",
+      "title": "emil ist lost",
+      "message": "",
+      "link": "",
+      "blocking": false,
+      "createdAt": "2026-10-27T16:19:21.512Z",
+      "expiresAt": "2026-10-27T17:19:21.512Z"
     }
   ]
 }
