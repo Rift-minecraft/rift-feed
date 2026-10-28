@@ -1,6 +1,18 @@
 {
   "announcements": [
     {
+      "id": "mvs2i03z1v1l",
+      "type": "update",
+      "title": "Rift Launcher 1.4.3 ist da!",
+      "message": "Ein neues Update steht bereit.",
+      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v1.4.3/rift-update-1.4.3.zip",
+      "version": "1.4.3",
+      "mandatory": false,
+      "hot": true,
+      "sha256": "84ee2ab499f3678aab8501643093ceae83332a7ad76589e89f90a03935837c06",
+      "createdAt": "2026-10-28T12:05:14.639Z"
+    },
+    {
       "id": "mvs2gc9p770n",
       "type": "news",
       "title": "KARL IST SLOW ODER SO",
@@ -10,18 +22,6 @@
       "showAfterInstall": false,
       "createdAt": "2026-10-28T12:03:57.085Z",
       "expiresAt": "2026-10-28T13:03:57.085Z"
-    },
-    {
-      "id": "mvs0hojg1ln2",
-      "type": "update",
-      "title": "Rift Launcher 1.4.2 ist da!",
-      "message": "Ein neues Update steht bereit.",
-      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v1.4.2/rift-update-1.4.2.zip",
-      "version": "1.4.2",
-      "mandatory": false,
-      "hot": true,
-      "sha256": "f1a25b54d293bf0dcef35fba68d55953d53d615933368f14ef0d14d652b0b4ce",
-      "createdAt": "2026-10-28T11:09:00.412Z"
     },
     {
       "id": "mvqw4y08x4qo",
