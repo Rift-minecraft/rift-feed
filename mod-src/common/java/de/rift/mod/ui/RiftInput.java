@@ -1,6 +1,7 @@
 package de.rift.mod.ui;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import de.rift.mod.RiftLog;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 
