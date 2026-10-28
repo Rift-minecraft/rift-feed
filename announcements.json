@@ -1,16 +1,16 @@
 {
   "announcements": [
     {
-      "id": "mvsgya2zr26s",
+      "id": "mvshdhbvttlp",
       "type": "update",
-      "title": "Rift Launcher 1.4.5 ist da!",
-      "message": "Ein neues Update steht bereit.",
-      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v1.4.5/rift-update-1.4.5.zip",
-      "version": "1.4.5",
+      "title": "Rift Launcher 1.4.6 ist da!",
+      "message": "Fix: admins can close or remove countdowns.\nFix: NeoForge launch (libraryDirectory), still needs a test.\nNew: beta update channel with a “Full release” button.\nNew: all pets in 3D, 3D previews for capes, skins and emotes, cape PNG upload.\nNew: hidden Intro animation (Reimagined Intro), under Settings → Beta, off by default.\nNew in-game widgets: Weather & time of day, Statistics (play time and deaths), Radar (markers and players).\nNew in-game key H: sends your coordinates to chat.\nCloud: the Mojang token check is cached.",
+      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v1.4.6/rift-update-1.4.6.zip",
+      "version": "1.4.6",
       "mandatory": false,
       "hot": true,
-      "sha256": "efac761f53844090fb12685255dd08f9b20b193e79e6778dfe603cf249c4c5ef",
-      "createdAt": "2026-10-28T18:49:48.683Z"
+      "sha256": "6cd4ab452c6f2ae3c3d82c6df3e0f2caeaefef18db824708f3a64eecdd7eab89",
+      "createdAt": "2026-10-28T19:01:37.915Z"
     },
     {
       "id": "mvs2gc9p770n",
