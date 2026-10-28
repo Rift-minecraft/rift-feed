@@ -149,7 +149,7 @@ public class RiftMenuScreen extends Screen {
         slider(g, x, y, 220, "Eckenrundung", c.rounding, 0, 8, v -> { c.rounding = (int) Math.round(v); }); y += 30;
         slider(g, x, y, 220, "Transparenz (Hintergrund)", c.alpha, 20, 255, v -> { c.alpha = (int) Math.round(v); }); y += 30;
         toggle(g, x, y, "Text-Schatten", c.shadow, () -> { c.shadow = !c.shadow; c.save(); }); y += 20;
-        toggle(g, x, y, "Rift-Schrift (aus = Minecraft-Schrift)", c.riftFont, () -> { c.riftFont = !c.riftFont; c.save(); }); y += 22;
+        toggle(g, x, y, "Rift-Schrift (Beta, aus = Minecraft)", c.riftFont, () -> { c.riftFont = !c.riftFont; c.save(); }); y += 22;
         RiftDraw.text(g, "Akzentfarbe", x, y, 0x9CA3AF); y += 12;
         for (int i = 0; i < SWATCH.length; i++) { int sx = x + i * 24, col = SWATCH[i]; RiftDraw.round(g, sx, y, sx + 18, y + 18, 4, 0xFF000000 | col); if (c.accent == col) outline(g, sx - 2, y - 2, sx + 20, y + 20, 0xFFFFFFFF); hit(sx, y, sx + 18, y + 18, () -> { c.accent = col; c.save(); }); }
         y += 30;
@@ -232,6 +232,22 @@ public class RiftMenuScreen extends Screen {
     private static int rarityCol(String r) {
         if (r == null) return 0x9CA3AF;
         return switch (r) { case "rare" -> 0x60A5FA; case "epic" -> 0xC084FC; case "legendary" -> 0xFBBF24; case "mythic" -> 0xF9A8D4; case "plus" -> 0x22C55E; case "event" -> 0xFB923C; case "secret" -> 0xF87171; default -> 0xE5E7EB; };
+    }
+
+    /* ---------------- Emotes ---------------- */
+    private void emoteTab(GuiGraphics g, int mx, int my, RiftConfig c) {
+        int x = width / 2 - 150, y = 50;
+        RiftDraw.round(g, x - 12, y - 12, x + 312, y + 60 + ((RiftEmotes.owned().size() + 1) / 2) * 24, 6, RiftDraw.argb(0x0B0B10, 120));
+        RiftDraw.text(g, "Emote-Rad (Taste B)", x, y, 0xFFFFFF); y += 14;
+        y += RiftDraw.wrap(g, "Klicke Emotes an, um sie ins Rad zu legen oder zu entfernen (max. 8). Neue Emotes gibt es im Launcher.", x, y, 310, 0x9CA3AF) + 4;
+        java.util.List<String> wl = new java.util.ArrayList<>(RiftEmotes.wheel()); int i = 0;
+        for (String id : RiftEmotes.owned()) {
+            int cx = x + (i % 2) * 160, cy = y + (i / 2) * 24; i++; boolean on = wl.contains(id);
+            RiftDraw.round(g, cx, cy, cx + 150, cy + 20, 5, on ? RiftDraw.argb(c.accent, 150) : 0x33FFFFFF);
+            RiftDraw.text(g, RiftEmotes.NAMES.getOrDefault(id, id), cx + 8, cy + 6, 0xFFFFFF);
+            if (on) RiftDraw.text(g, "\u2713", cx + 134, cy + 6, 0xFFFFFF);
+            hit(cx, cy, cx + 150, cy + 20, () -> { java.util.List<String> w2 = new java.util.ArrayList<>(RiftEmotes.wheel()); if (!w2.remove(id)) { if (w2.size() >= 8) return; w2.add(id); } c.wheel = w2; c.save(); });
+        }
     }
     private static String trunc(String s, int px) { while (s.length() > 4 && RiftDraw.width(s) > px) s = s.substring(0, s.length() - 2); return s; }
 

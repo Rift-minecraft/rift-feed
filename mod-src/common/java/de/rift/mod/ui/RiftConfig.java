@@ -22,7 +22,7 @@ public final class RiftConfig {
     public int markerSeconds = 90;
     public int menuKey = 82;          // R
     public int ver = 0;
-    public boolean riftFont = true;
+    public boolean riftFont = false;   // Rift-Schrift (Beta)
     public java.util.List<String> wheel = null;   // eigenes Emote-Rad (sonst das aus dem Launcher)
     public int emoteKey = 66;         // B
     public String privateName = "Marker";
@@ -39,7 +39,8 @@ public final class RiftConfig {
             } catch (Throwable ignored) {}
             if (I == null) I = new RiftConfig();
             if (I.widgets == null) I.widgets = new LinkedHashMap<>();
-            if (I.ver < 3) { I.ver = 3; I.menuKey = 82; for (W w : I.widgets.values()) w.on = false; }
+            if (I.ver < 3) { I.menuKey = 82; for (W w : I.widgets.values()) w.on = false; }
+            if (I.ver < 4) { I.ver = 4; I.riftFont = false; }
             if (I.widgets.isEmpty()) {   // Standard-Widgets
                 def("fps", 0.01f, 0.02f); def("coords", 0.01f, 0.07f); def("direction", 0.36f, 0.01f); def("bossbar", 0.36f, 0.03f);
             }
