@@ -42,27 +42,33 @@ public final class RiftCosmetics {
 
     private RiftCosmetics() {}
 
-    public static void start() {
+    private static boolean netStarted; private static long lastLoad;
+    /** Liest config/rift-cosmetics.json (Adresse, Emotes). Darf beliebig oft aufgerufen werden – wird bei leerer Adresse erneut versucht. */
+    private static synchronized void loadCfg() {
+        if (System.currentTimeMillis() - lastLoad < 2000) return; lastLoad = System.currentTimeMillis();
         try {
-            Path f = Minecraft.getInstance().gameDirectory.toPath().resolve("config").resolve("rift-cosmetics.json");
-            if (Files.exists(f)) {
-                JsonObject cfg = JsonParser.parseString(Files.readString(f)).getAsJsonObject();
-                api = cfg.get("api").getAsString().replaceAll("/$", "");
-                if (cfg.has("emotesOwned")) { List<String> l = new ArrayList<>(); for (JsonElement e : cfg.getAsJsonArray("emotesOwned")) l.add(e.getAsString()); RiftEmotes.OWNED = l; }
-                if (cfg.has("emotes")) { List<String> l = new ArrayList<>(); for (JsonElement e : cfg.getAsJsonArray("emotes")) l.add(e.getAsString()); RiftEmotes.MY = l; }
-            }
-        } catch (Exception ignored) {}
-        if (api.isEmpty()) { RiftLog.cloud = "Cloud: keine Adresse (im Launcher Einstellungen → Cloud eintragen)"; return; }
-        RiftNet.start(api);
+            Minecraft mc = Minecraft.getInstance(); if (mc == null || mc.gameDirectory == null) return;
+            Path f = mc.gameDirectory.toPath().resolve("config").resolve("rift-cosmetics.json");
+            if (!Files.exists(f)) return;
+            JsonObject cfg = JsonParser.parseString(Files.readString(f)).getAsJsonObject();
+            if (cfg.has("api") && !cfg.get("api").isJsonNull()) api = cfg.get("api").getAsString().trim().replaceAll("/$", "");
+            if (cfg.has("emotesOwned")) { List<String> l = new ArrayList<>(); for (JsonElement e : cfg.getAsJsonArray("emotesOwned")) l.add(e.getAsString()); RiftEmotes.OWNED = l; }
+            if (cfg.has("emotes")) { List<String> l = new ArrayList<>(); for (JsonElement e : cfg.getAsJsonArray("emotes")) l.add(e.getAsString()); RiftEmotes.MY = l; }
+        } catch (Throwable t) { RiftLog.err("Config: " + t); }
+        if (!api.isEmpty() && !netStarted) { netStarted = true; RiftNet.start(api); }
+    }
+
+    public static void start() {
+        loadCfg();
+        if (api.isEmpty()) RiftLog.cloud = "Cloud: keine Adresse (im Launcher Einstellungen → Cloud eintragen)";
         Thread t = new Thread(() -> {
             while (true) {
-                try { Thread.sleep(15000); poll(); } catch (InterruptedException e) { return; } catch (Throwable ignored) {}
+                try { Thread.sleep(api.isEmpty() ? 3000 : 15000); if (api.isEmpty()) loadCfg(); if (!api.isEmpty()) poll(); } catch (InterruptedException e) { return; } catch (Throwable ignored) {}
             }
         }, "rift-cosmetics");
         t.setDaemon(true); t.start();
     }
-
-    public static String api() { return api; }
+    public static String api() { if (api.isEmpty()) loadCfg(); return api; }
     public static void refresh() { try { poll(); } catch (Throwable ignored) {} }
 
     private static void poll() {

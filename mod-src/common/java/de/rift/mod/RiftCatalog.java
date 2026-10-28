@@ -62,7 +62,7 @@ public final class RiftCatalog {
 
     private static void publish() throws Exception {
         Minecraft mc = Minecraft.getInstance(); String api = RiftCosmetics.api();
-        if (api == null || api.isEmpty() || mc.player == null) { status = "Cloud nicht erreichbar."; return; }
+        if (api == null || api.isEmpty() || mc.player == null) { status = (api == null || api.isEmpty()) ? "Keine Cloud-Adresse - Spiel ueber den Rift-Launcher starten" : "Nicht im Spiel"; return; }
         JsonObject b = new JsonObject(); b.addProperty("uuid", mc.player.getUUID().toString().replace("-", "").toLowerCase());
         Item nt = byId(EQUIPPED.get("nametag")), cape = byId(EQUIPPED.get("cape")), au = byId(EQUIPPED.get("aura")), pe = byId(EQUIPPED.get("pet")), bd = byId(EQUIPPED.get("badge"));
         if (nt != null && nt.nametag != null) b.add("nametag", nt.nametag);
