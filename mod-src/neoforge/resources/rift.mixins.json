@@ -9,7 +9,8 @@
     "GuiBossMixin",
     "EntityRenderStateMixin",
     "LivingRendererMixin",
-    "HumanoidModelMixin"
+    "HumanoidModelMixin",
+    "ScreenJoinMixin"
   ],
   "injectors": {
     "defaultRequire": 0

@@ -22,6 +22,7 @@ public final class RiftConfig {
     public int markerSeconds = 90;
     public int menuKey = 82;          // R
     public int ver = 0;
+    public boolean joinAnim = true;     // Beitritts-Animation
     public int menuStyle = 1;          // 0 = Vanilla (Holzrahmen), 1 = Rift (runde Ecken)
     public boolean riftFont = false;   // Rift-Schrift (Beta)
     public java.util.List<String> wheel = null;   // eigenes Emote-Rad (sonst das aus dem Launcher)

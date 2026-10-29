@@ -78,6 +78,10 @@ public class RiftMenuScreen extends Screen {
         { String st = de.rift.mod.RiftLog.last.isEmpty() ? "Rift-Mod \u00b7 HUD-Frames: " + de.rift.mod.RiftLog.hudFrames : "Fehler: " + de.rift.mod.RiftLog.last;
           RiftDraw.text(g, trunc(st, width - 330), 14, height - 32, de.rift.mod.RiftLog.last.isEmpty() ? 0x6B7280 : 0xF87171); }
         RiftDraw.text(g, "R oder Esc: schließen", 14, height - 20, 0x9CA3AF);
+        { String lab = "Join-Animation: " + (c.joinAnim ? "an" : "aus"); int wx = 14, wy = height - 50, ww = RiftDraw.width(lab) + 26; boolean wh = mx >= wx && mx < wx + ww && my >= wy && my < wy + 14;   // Wasserzeichen unten links: Klick schaltet die Animation
+          RiftDraw.round(g, wx, wy, wx + ww, wy + 14, 7, RiftDraw.argb(c.accent, c.joinAnim ? (wh ? 90 : 55) : (wh ? 45 : 22)));
+          RiftJoinAnim.star(g, wx + 9, wy + 7, 4.5, c.joinAnim ? 0xFFFFFFFF : 0x889CA3AF); RiftDraw.text(g, lab, wx + 18, wy + 3, c.joinAnim ? 0xFFFFFF : 0x9CA3AF);
+          hit(wx, wy, wx + ww, wy + 14, () -> { c.joinAnim = !c.joinAnim; c.save(); }); }
         int bw = 128, bx = width - bw - 14, by = height - 24; boolean bh = mx >= bx && mx < bx + bw && my >= by && my < by + 16;
         RiftDraw.round(g, bx, by, bx + bw, by + 16, 4, bh ? RiftDraw.argb(c.accent, 110) : 0x40FFFFFF);
         RiftDraw.text(g, "\u2039 Zurück zum Spielmenü", bx + (bw - RiftDraw.width("\u2039 Zurück zum Spielmenü")) / 2, by + 4, 0xFFFFFF);

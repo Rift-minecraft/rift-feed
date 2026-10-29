@@ -12,5 +12,5 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Gui.class)
 public abstract class GuiMixin {
     @Inject(method = "render", at = @At("TAIL"))
-    private void rift$hud(GuiGraphics g, DeltaTracker dt, CallbackInfo ci) { RiftHud.render(g); }
+    private void rift$hud(GuiGraphics g, DeltaTracker dt, CallbackInfo ci) { RiftHud.render(g); try { de.rift.mod.ui.RiftJoinAnim.drawExit(g, net.minecraft.client.Minecraft.getInstance()); } catch (Throwable ignored) {} }
 }
