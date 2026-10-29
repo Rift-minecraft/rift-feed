@@ -14,18 +14,6 @@
       "createdAt": "2026-10-29T20:41:54.557Z"
     },
     {
-      "id": "mvsja9tl55rs",
-      "type": "update",
-      "title": "Rift Launcher 2.5.3 ist da!",
-      "message": "Ein neues Update steht bereit.",
-      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v2.5.3/rift-update-2.5.3.zip",
-      "version": "2.5.3",
-      "mandatory": false,
-      "hot": true,
-      "sha256": "4470a0cf060112dc95ecec9f8781de548d1680dbeaa6a7e5b48d8b3bdb767e8f",
-      "createdAt": "2026-10-28T19:55:07.449Z"
-    },
-    {
       "id": "mvs2gc9p770n",
       "type": "news",
       "title": "KARL IST SLOW ODER SO",
