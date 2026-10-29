@@ -22,6 +22,7 @@ public final class RiftConfig {
     public int markerSeconds = 90;
     public int menuKey = 82;          // R
     public int ver = 0;
+    public int menuStyle = 1;          // 0 = Vanilla (Holzrahmen), 1 = Rift (runde Ecken)
     public boolean riftFont = false;   // Rift-Schrift (Beta)
     public java.util.List<String> wheel = null;   // eigenes Emote-Rad (sonst das aus dem Launcher)
     public int coordKey = 72;         // H: Koordinaten in den Chat
@@ -42,6 +43,7 @@ public final class RiftConfig {
             if (I.widgets == null) I.widgets = new LinkedHashMap<>();
             if (I.ver < 3) { I.menuKey = 82; for (W w : I.widgets.values()) w.on = false; }
             if (I.ver < 4) { I.ver = 4; I.riftFont = false; }
+            if (I.ver < 5) { I.ver = 5; I.menuStyle = 1; }
             if (I.widgets.isEmpty()) {   // Standard-Widgets
                 def("fps", 0.01f, 0.02f); def("coords", 0.01f, 0.07f); def("direction", 0.36f, 0.01f); def("bossbar", 0.36f, 0.03f);
             }

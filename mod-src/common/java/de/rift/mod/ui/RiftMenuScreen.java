@@ -18,7 +18,7 @@ import de.rift.mod.RiftLog;
 
 /** Rift-Menü im Spiel: Widget-Editor (Liste links, Vorschau rechts), Design, Marker. */
 public class RiftMenuScreen extends Screen {
-    private static final String[] TABS = {"Widgets", "Design", "Marker", "Emotes", "Cosmetics"};
+    private static final String[] TABS = {"Widgets", "Design", "Marker", "Emotes", "Cosmetics", "Freunde"};
     private static final int[] SWATCH = {0x7DD3FC, 0x4ADE80, 0xFBBF24, 0xF87171, 0xC084FC, 0xFFFFFF};
 
     private record Hit(int x1, int y1, int x2, int y2, Runnable click, DoubleConsumer drag) {}
@@ -56,14 +56,16 @@ public class RiftMenuScreen extends Screen {
         float a = Math.min(1f, (System.currentTimeMillis() - openAt) / 180f);
         if (GLFW.glfwGetKey(net.minecraft.client.Minecraft.getInstance().getWindow().handle(), c.menuKey) == GLFW.GLFW_RELEASE) released = true;
         // grosse Box um alles (leicht durchsichtig, dahinter unscharf)
-        RiftDraw.round(g, 6, 6, width - 6, height - 6, 8, RiftDraw.argb(0x07080D, (int) (150 * a)));
+        if (c.menuStyle == 1) { RiftDraw.round(g, 5, 5, width - 5, height - 5, 14, RiftDraw.argb(c.accent, (int) (70 * a))); RiftDraw.round(g, 6, 6, width - 6, height - 6, 13, RiftDraw.argb(0x07080D, (int) (200 * a))); }
+        else RiftDraw.round(g, 6, 6, width - 6, height - 6, 8, RiftDraw.argb(0x07080D, (int) (150 * a)));
         // Tabs
-        int tw = 74, tx = width / 2 - TABS.length * tw / 2;
+        int tw = Math.max(52, Math.min(74, (width - 150) / TABS.length)), tx = width / 2 - TABS.length * tw / 2;
         RiftDraw.text(g, "RIFT", 18, 14, c.accent);
         for (int i = 0; i < TABS.length; i++) {
             int x = tx + i * tw, i2 = i; boolean on = tab == i, hov = mx >= x && mx < x + tw && my >= 8 && my < 28;
             RiftDraw.text(g, TABS[i], x + (tw - RiftDraw.width(TABS[i])) / 2, 14, on ? c.accent : hov ? 0xFFFFFF : 0x9CA3AF);
-            if (on) g.fill(x + 10, 26, x + tw - 10, 28, 0xFF000000 | c.accent);
+            if (on && c.menuStyle == 1) RiftDraw.round(g, x + 4, 9, x + tw - 4, 27, 8, RiftDraw.argb(c.accent, 60));
+            else if (on) g.fill(x + 10, 26, x + tw - 10, 28, 0xFF000000 | c.accent);
             hit(x, 8, x + tw, 30, () -> { tab = i2; });
         }
         nameBox.visible = false;
@@ -71,7 +73,8 @@ public class RiftMenuScreen extends Screen {
         else if (tab == 1) designTab(g, mx, my, c);
         else if (tab == 2) markerTab(g, mx, my, c);
         else if (tab == 3) emoteTab(g, mx, my, c);
-        else cosTab(g, mx, my, c);
+        else if (tab == 4) cosTab(g, mx, my, c);
+        else friendsTab(g, mx, my, c);
         { String st = de.rift.mod.RiftLog.last.isEmpty() ? "Rift-Mod \u00b7 HUD-Frames: " + de.rift.mod.RiftLog.hudFrames : "Fehler: " + de.rift.mod.RiftLog.last;
           RiftDraw.text(g, trunc(st, width - 330), 14, height - 32, de.rift.mod.RiftLog.last.isEmpty() ? 0x6B7280 : 0xF87171); }
         RiftDraw.text(g, "R oder Esc: schließen", 14, height - 20, 0x9CA3AF);
@@ -107,7 +110,7 @@ public class RiftMenuScreen extends Screen {
         int ax = lx + lw + 12, ay = 38, aw = width - ax - 18, ah = height - 104;
         float s = Math.min(aw / (float) width, ah / (float) height); pvS = s; pvW = Math.round(width * s); pvH = Math.round(height * s);
         pvX = ax + (aw - pvW) / 2; pvY = ay + (ah - pvH) / 2;
-        wood(g, pvX, pvY, pvX + pvW, pvY + pvH, 6);
+        frame(g, pvX, pvY, pvX + pvW, pvY + pvH, 6);
         g.fillGradient(pvX, pvY, pvX + pvW, pvY + pvH * 2 / 3, 0xFF5E9BE0, 0xFFBFE0F7); g.fill(pvX, pvY + pvH * 2 / 3, pvX + pvW, pvY + pvH * 2 / 3 + Math.max(2, pvH / 14), 0xFF5DA34A); g.fill(pvX, pvY + pvH * 2 / 3 + Math.max(2, pvH / 14), pvX + pvW, pvY + pvH, 0xFF7A5230);
         g.fill(pvX + pvW - pvW / 6, pvY + pvH / 10, pvX + pvW - pvW / 6 + Math.max(6, pvW / 24), pvY + pvH / 10 + Math.max(6, pvW / 24), 0xFFFFF3A0);
         g.enableScissor(pvX, pvY, pvX + pvW, pvY + pvH);
@@ -141,11 +144,35 @@ public class RiftMenuScreen extends Screen {
         g.fill(x1, y1, x2, y1 + 1, col); g.fill(x1, y2 - 1, x2, y2, col); g.fill(x1, y1, x1 + 1, y2, col); g.fill(x2 - 1, y1, x2, y2, col);
     }
 
+    /* ---------------- Freunde ---------------- */
+    private void friendsTab(GuiGraphics g, int mx, int my, RiftConfig c) {
+        de.rift.mod.RiftFriends.refreshIfStale();
+        int x = width / 2 - 150, y = 46, w = 300, hh = Math.min(height - 100, 230);
+        RiftDraw.round(g, x - 12, y - 12, x + w + 12, y + hh + 12, c.menuStyle == 1 ? 12 : 6, RiftDraw.argb(0x0B0B10, 140));
+        var L = de.rift.mod.RiftFriends.LIST; long on = L.stream().filter(f -> f.online()).count();
+        RiftDraw.text(g, "Freunde  " + on + " online / " + L.size(), x, y, 0xFFFFFF);
+        if (!de.rift.mod.RiftFriends.code.isEmpty()) { String cd = "Dein Code: " + de.rift.mod.RiftFriends.code; RiftDraw.text(g, cd, x + w - RiftDraw.width(cd), y, 0x9CA3AF); }
+        y += 18;
+        if (!de.rift.mod.RiftFriends.status.isEmpty()) RiftDraw.text(g, de.rift.mod.RiftFriends.status, x, y, 0x9CA3AF);
+        g.enableScissor(x, y, x + w, y + hh - 18);
+        for (var f : L) {
+            int col = f.online() ? 0xFF22C55E : 0xFF52525B;
+            RiftDraw.round(g, x, y, x + 8, y + 8, 4, col);
+            RiftDraw.text(g, f.name() + (f.plus() ? " +" : ""), x + 14, y, f.online() ? 0xFFFFFF : 0x9CA3AF);
+            if (f.online()) { String s = f.where().isEmpty() || f.where().equals("online") ? "online" : f.where(); RiftDraw.text(g, trunc(s, 120), x + w - RiftDraw.width(trunc(s, 120)), y, 0x22C55E); }
+            y += 16;
+        }
+        g.disableScissor();
+    }
+
     /* ---------------- Design ---------------- */
     private void designTab(GuiGraphics g, int mx, int my, RiftConfig c) {
         int x = width / 2 - 130, y = 50;
-        RiftDraw.round(g, x - 12, y - 12, x + 262, y + 212, 6, RiftDraw.argb(0x0B0B10, 120));
+        RiftDraw.round(g, x - 12, y - 12, x + 262, y + 236, c.menuStyle == 1 ? 12 : 6, RiftDraw.argb(0x0B0B10, 120));
         RiftDraw.text(g, "Design", x, y, 0xFFFFFF); y += 18;
+        RiftDraw.text(g, "Menü-Stil", x, y + 4, 0x9CA3AF);
+        for (int i = 0; i < 2; i++) { int bx = x + 70 + i * 74, st = i; boolean on = c.menuStyle == i; RiftDraw.round(g, bx, y, bx + 68, y + 16, c.menuStyle == 1 ? 8 : 3, on ? RiftDraw.argb(c.accent, 255) : 0x55FFFFFF); String n = i == 0 ? "Vanilla" : "Rift"; RiftDraw.text(g, n, bx + (68 - RiftDraw.width(n)) / 2, y + 4, on ? 0x000000 : 0xFFFFFF); hit(bx, y, bx + 68, y + 16, () -> { c.menuStyle = st; c.save(); }); }
+        y += 24;
         slider(g, x, y, 220, "Eckenrundung", c.rounding, 0, 8, v -> { c.rounding = (int) Math.round(v); }); y += 30;
         slider(g, x, y, 220, "Transparenz (Hintergrund)", c.alpha, 20, 255, v -> { c.alpha = (int) Math.round(v); }); y += 30;
         toggle(g, x, y, "Text-Schatten", c.shadow, () -> { c.shadow = !c.shadow; c.save(); }); y += 20;
@@ -189,7 +216,7 @@ public class RiftMenuScreen extends Screen {
     private void cosTab(GuiGraphics g, int mx, int my, RiftConfig c) {
         var mc = net.minecraft.client.Minecraft.getInstance();
         int fw = Math.min(170, width / 3), fh = Math.min(height - 90, 230), fx = width / 2 - fw - 20, fy = 50;
-        wood(g, fx, fy, fx + fw, fy + fh, 6);
+        frame(g, fx, fy, fx + fw, fy + fh, 6);
         g.fillGradient(fx, fy, fx + fw, fy + fh, 0xFF1B2433, 0xFF3A4A63);
         try { net.minecraft.client.gui.screens.inventory.InventoryScreen.renderEntityInInventoryFollowsMouse(g, fx, fy + 14, fx + fw, fy + fh, Math.max(30, fh / 3), 0.0625f, (float) mx, (float) my, mc.player); } catch (Throwable ignored) {}
         if (mc.player != null) {
@@ -251,6 +278,13 @@ public class RiftMenuScreen extends Screen {
     }
     private static String trunc(String s, int px) { while (s.length() > 4 && RiftDraw.width(s) > px) s = s.substring(0, s.length() - 2); return s; }
 
+    /** Rahmen um einen Bereich: Vanilla = Eichenholz, Rift = abgerundet mit Akzent-Kante. */
+    private static void frame(GuiGraphics g, int x1, int y1, int x2, int y2, int t) {
+        RiftConfig c = RiftConfig.get();
+        if (c.menuStyle != 1) { wood(g, x1, y1, x2, y2, t); return; }
+        RiftDraw.round(g, x1 - t - 1, y1 - t - 1, x2 + t + 1, y2 + t + 1, 10, RiftDraw.argb(c.accent, 190));
+        RiftDraw.round(g, x1 - t, y1 - t, x2 + t, y2 + t, 9, 0xFF0E1018);
+    }
     /** Rahmen aus Eichenholz um einen Bereich. */
     private static void wood(GuiGraphics g, int x1, int y1, int x2, int y2, int t) {
         int ox1 = x1 - t, oy1 = y1 - t, ox2 = x2 + t, oy2 = y2 + t;
