@@ -11,9 +11,16 @@ let accountProfile = null; // Minecraft-Profil (Skin/Capes) bei MS-Login
 let mrState = { type: 'mod', query: '', hits: [], loading: false, provider: 'modrinth' }, mrSeq = 0;
 
 function toast(msg, err = false) {
-  const t = document.createElement('div');
-  t.className = 't' + (err ? ' err' : ''); t.textContent = msg;
-  $('#toast').append(t); setTimeout(() => t.remove(), err ? 7000 : 3500);
+  const ok = !err && /^(✓|Installiert|Gespeichert|Importiert|Kopiert|Freund hinzugefügt|Modpack|Neu:|Update|Intro an|Cloud-Adresse|Code kopiert|Entfernt|\d+ Mod)/i.test(msg);
+  const dur = err ? 7000 : 4200, t = document.createElement('div');
+  t.className = 't ' + (err ? 'err' : ok ? 'ok' : 'info');
+  t.style.setProperty('--dur', dur + 'ms');
+  const ic = err ? '<path d="M12 8v5m0 3.5v.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.700 3.900a2 2 0 0 0-3.400 0z"/>' : ok ? '<path d="M5 12.500l4.500 4.500L19 7.500"/>' : '<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8.500v.01"/>';
+  t.innerHTML = `<svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round">${ic}</svg><span class="tm"></span><i class="tb"></i>`;
+  t.querySelector('.tm').textContent = msg;
+  const box = $('#toast'); box.append(t); while (box.children.length > 5) box.firstChild.remove();
+  const out = () => { if (!t.isConnected) return; t.classList.add('bye'); setTimeout(() => t.remove(), 320); };
+  let to = setTimeout(out, dur); t.onclick = () => { clearTimeout(to); out(); };
 }
 const guard = (fn) => async (...a) => { try { return await fn(...a); } catch (e) { toast(e.message, true); } };
 const RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic', event: 'Halloween', secret: 'Secret', plus: 'Rift+' };
@@ -253,7 +260,7 @@ rift.on('game:state', (d) => {
 });
 
 rift.on('invite:new', (list) => list.forEach((iv) => {   // Einladung eines Freundes auf seinen lokalen Server
-  const o = document.createElement('div'); o.className = 'card'; o.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:95;width:300px;box-shadow:0 8px 30px #000a';
+  const o = document.createElement('div'); o.className = 'card ivcard'; o.style.cssText = 'position:fixed;right:24px;bottom:24px;z-index:95;width:320px';
   o.innerHTML = `<b>${esc(iv.fromName)} lädt dich ein</b><div class="mute" style="margin:6px 0 10px;font-size:12px">${esc(iv.name)}${iv.version ? ' · Minecraft ' + esc(iv.version) : ''}</div><div class="row"><button class="b primary" id="ivGo">Beitreten</button><button class="b" id="ivNo">Später</button></div>`;
   document.body.appendChild(o); setTimeout(() => o.remove(), 90000);
   o.querySelector('#ivNo').onclick = () => o.remove();
@@ -404,7 +411,7 @@ async function renderMods() {
   const p = modsTarget === '*' ? null : profile();
   content.innerHTML = `<h2><select id="prov" style="font:inherit;font-weight:700;background:transparent;color:inherit;border:0;cursor:pointer"><option value="modrinth" ${mrState.provider === 'modrinth' ? 'selected' : ''}>Modrinth</option><option value="curseforge" ${mrState.provider === 'curseforge' ? 'selected' : ''}>CurseForge</option></select> <small>${p ? 'Ziel: ' + esc(p.name) + ' (' + esc(p.mcVersion) + ', ' + esc(LOADERS[p.loader]) + ')' : 'Kein Profil gewählt – Modpacks erstellen ein eigenes'}</small></h2>
     <div class="tabs">${Object.entries(MR_TABS).map(([k, v]) => `<div class="tab ${k === mrState.type ? 'active' : ''}" data-t="${k}">${v}</div>`).join('')}</div>
-    <div class="row" style="margin-bottom:14px"><input id="q" style="flex:1" placeholder="Suchen…" value="${esc(mrState.query)}"><label class="row mute"><input type="checkbox" id="flt" checked style="min-width:0"> Nur kompatibel</label><button class="b primary" id="go">Suchen</button></div>
+    <div class="row" style="margin-bottom:14px"><input id="q" style="flex:1" placeholder="Suchen…" value="${esc(mrState.query)}"><label class="row mute"><input type="checkbox" id="flt" checked style="min-width:0"> Nur kompatibel</label><button class="b primary" id="go">Suchen</button><button class="b" id="mimp" title="Eigene Modpack-Datei (.mrpack) importieren">⬆ .mrpack</button></div>
     <div class="mr"><div id="hits"></div><div><h2 style="font-size:13px">Installiert</h2><div class="card" id="inst" style="padding:6px"></div></div></div>`;
   content.querySelectorAll('.tab').forEach((t) => (t.onclick = () => { mrState.type = t.dataset.t; mrState.query = $('#q').value; renderMods(); }));
   content.querySelector('h2').insertAdjacentHTML('beforeend', '<button class="b" id="mchg" style="margin-left:auto">Profil wechseln</button>');
@@ -421,6 +428,7 @@ async function renderMods() {
       } finally { b.disabled = false; b.textContent = 'Updates prüfen'; }
     });
   }
+  $('#mimp').onclick = guard(async () => { const s = await api('modpack:importFile'); if (s) { S = s; renderChrome(); toast('Modpack importiert – du findest es unter Profile.'); } });
   $('#prov').onchange = () => { mrState.provider = $('#prov').value; mrState.query = $('#q').value; renderMods(); };
   $('#go').onclick = () => search(); let qt = 0; $('#q').onkeydown = (e) => { if (e.key === 'Enter') { clearTimeout(qt); search(); } }; $('#q').oninput = () => { clearTimeout(qt); qt = setTimeout(() => search(), 450); };
   renderInstalled();
@@ -983,6 +991,7 @@ function showAnnouncement(a) {
   if (!must || S.admin) $('#annOk').onclick = () => { p.classList.add('hidden'); p.innerHTML = ''; if (must) { dismissed.add(a.id); api('maint:ignore', a.id).catch(() => {}); } api('feed:seen', [a.id]).catch(() => {}); S.seen = [...(S.seen || []), a.id]; showNextAnnouncement(); };
   if (a.link) $('#annLink').onclick = async () => {
     if (!isUpdate) return window.open(a.link);
+    api('feed:seen', [a.id]).catch(() => {});   // gleiches Update nicht nochmal aufpoppen lassen
     const b = $('#annLink'); b.disabled = true; b.textContent = 'Lade herunter…'; $('#upwrap').classList.add('on'); setUpPhase('download', 0);
     try {
       if (a.hot) { await api('update:hot', a.link, a.version, a.sha256); b.textContent = 'Starte neu…'; setUpPhase('restart', 100); }
@@ -1039,6 +1048,7 @@ addEventListener('focus', () => { if (S) pollFeed(); });
   pollFeed();
   go('play');
   setTimeout(plusMonthPopup, 1400);
+  if (S.hotError) setTimeout(() => toast('Das letzte Update konnte nicht gestartet werden: ' + S.hotError, true), 1800);
   setTimeout(syncCatalog, 2500);
   if (S.account && S.daily?.claimable) setTimeout(() => { if ($('#modal').classList.contains('hidden')) showDaily(); }, 900);
 })().catch((e) => { document.body.insertAdjacentHTML('beforeend', `<pre style="color:#f88;padding:20px">${esc(e.stack || e)}</pre>`); });

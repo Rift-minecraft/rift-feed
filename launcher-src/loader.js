@@ -23,6 +23,7 @@ try {
   }
 } catch (e) {
   console.error('Hot-Update fehlgeschlagen, falle auf eingebaute Version zurück:', e);
+  try { fs.writeFileSync(path.join(app.getPath('appData'), 'RiftClient', 'hot-error.txt'), String((e && e.stack) || e).slice(0, 1200)); } catch {}
   if (started) {   // halb gestartet → Update verwerfen und sauber neu starten
     try { fs.renameSync(path.join(app.getPath('appData'), 'RiftClient', 'hot'), path.join(app.getPath('appData'), 'RiftClient', 'hot.bad-' + Date.now())); } catch {}
     app.relaunch(); app.exit(0);

@@ -224,10 +224,11 @@ const save = () => fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 
 let win;
 let overlay = null;
+let hotError = ''; try { const hf = path.join(DATA, 'hot-error.txt'); if (fs.existsSync(hf)) { hotError = fs.readFileSync(hf, 'utf8').split('\n').slice(0, 3).join(' ').slice(0, 300); fs.unlinkSync(hf); } } catch {}
 const send = (ch, data) => { if (win && !win.isDestroyed()) win.webContents.send(ch, data); if (/^(lserver|game|invite):/.test(ch) && overlay) overlay.forward(ch, data); };
 const plusOn = () => !!(state.plus && state.plus.active);
 const dp = (p) => (plusOn() ? Math.ceil(p * 0.8) : p);   // Rift+: 20 % Rabatt
-const publicState = () => ({ cloudApi: state.cloudApi || '', cfSet: !!cfKey(),
+const publicState = () => ({ hotError, cloudApi: state.cloudApi || '', cfSet: !!cfKey(),
   ...state,
   account: state.account && { type: state.account.type, name: state.account.name, uuid: state.account.uuid },
   feedRepo: (CONFIG.feedRepo && !String(CONFIG.feedRepo).startsWith('OWNER')) ? CONFIG.feedRepo : '', appVersion: curVersion(),
@@ -752,9 +753,11 @@ async function installProject(profile, projectId, type, visited = new Set()) {
   profile.installed.push({ projectId, title: proj.title, type: ptype, file: path.relative(profileDir(profile), dest), icon: proj.icon_url });
   const done = [proj.title];
   for (const d of v.dependencies || []) {
-    if (d.dependency_type === 'required' && d.project_id) {
-      try { done.push(...(await installProject(profile, d.project_id, 'mod', visited))); } catch (e) { send('install:progress', { text: 'Abhängigkeit übersprungen: ' + e.message }); }
-    }
+    if (d.dependency_type !== 'required') continue;
+    try {
+      let pid = d.project_id; if (!pid && d.version_id) pid = (await getJSON(`${MR}/version/${d.version_id}`)).project_id;   // Abhaengigkeit nur per Versions-ID angegeben
+      if (pid) done.push(...(await installProject(profile, pid, 'mod', visited)));
+    } catch (e) { send('install:progress', { text: 'Abhängigkeit übersprungen: ' + e.message }); }
   }
   return done;
 }

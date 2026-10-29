@@ -23,3 +23,6 @@
 - New: macbuild.bat for Windows – GitHub builds the Mac .dmg for you (Actions → mac; download from the mac-latest release).
 - New: Mods tab – provider dropdown (Modrinth / CurseForge; CurseForge needs a free API key set by the admin in Settings), search fixed (stale results no longer overwrite new ones, live search while typing).
 - New: a scheduled update less than 24 h away shows a small countdown at the top automatically.
+- New: toasts and invitations redesigned (icons, progress bar, bounce in/out).
+- Fix: the same update prompted again after installing – update popup is marked as seen when you click Update; if a hot update fails to start, the next launcher start shows the reason (needs the new installer for the loader part).
+- New: .mrpack import also in the Mods tab. Mod install: required dependencies listed only by version ID are installed too.
