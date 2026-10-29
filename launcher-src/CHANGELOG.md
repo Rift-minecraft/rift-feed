@@ -21,3 +21,5 @@
 - New: local servers can be shared with friends (free tunnel, bore.pub) and friends get invitations ("Join" starts the game on the server).
 - New: import Modrinth modpacks from a .mrpack file (Profiles page); setup screen resumes at the step you left.
 - New: macbuild.bat for Windows – GitHub builds the Mac .dmg for you (Actions → mac; download from the mac-latest release).
+- New: Mods tab – provider dropdown (Modrinth / CurseForge; CurseForge needs a free API key set by the admin in Settings), search fixed (stale results no longer overwrite new ones, live search while typing).
+- New: a scheduled update less than 24 h away shows a small countdown at the top automatically.

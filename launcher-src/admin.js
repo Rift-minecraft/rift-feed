@@ -179,12 +179,12 @@ module.exports = function registerAdmin(ctx) {
     return { version: a.version };
   });
   /* Cloud-Adresse (Cloudflare-Worker) fuer alle Spieler setzen: cloud.json im Feed-Repo */
-  A('admin:setCloud', async (u) => {
-    needRepo(); u = String(u || '').trim().replace(/\/$/, '');
+  A('admin:setCloud', async (u, cfKey) => {
+    needRepo(); u = String(u || '').trim().replace(/\/$/, ''); cfKey = String(cfKey || '').trim();
     if (!/^https:\/\/[\w.-]+(\/.*)?$/.test(u)) throw new Error('Bitte die volle Adresse mit https:// angeben.');
     let sha; try { sha = (await gh('GET', `/repos/${cfg.repo}/contents/cloud.json?ref=${cfg.branch}`)).sha; } catch (e) { if (e.status !== 404) throw e; }
-    await gh('PUT', `/repos/${cfg.repo}/contents/cloud.json`, { message: 'Cloud-Adresse', branch: cfg.branch, sha, content: Buffer.from(JSON.stringify({ api: u }, null, 2)).toString('base64') });
-    setCloudApi(u); return { api: u };
+    await gh('PUT', `/repos/${cfg.repo}/contents/cloud.json`, { message: 'Cloud-Adresse', branch: cfg.branch, sha, content: Buffer.from(JSON.stringify({ api: u, cfKey }, null, 2)).toString('base64') });
+    setCloudApi(u, cfKey); return { api: u };
   });
   A('admin:publishUpdate', async (o) => {
     needRepo();

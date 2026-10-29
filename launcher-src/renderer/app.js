@@ -8,7 +8,7 @@ let view = 'play';
 let game = { status: 'idle', text: '', pct: 0, log: [] };
 let viewer = null;
 let accountProfile = null; // Minecraft-Profil (Skin/Capes) bei MS-Login
-let mrState = { type: 'mod', query: '', hits: [], loading: false };
+let mrState = { type: 'mod', query: '', hits: [], loading: false, provider: 'modrinth' }, mrSeq = 0;
 
 function toast(msg, err = false) {
   const t = document.createElement('div');
@@ -402,7 +402,7 @@ function renderModsChooser() {
 async function renderMods() {
   if (!modsTarget || (modsTarget !== '*' && !S.profiles.find((x) => x.id === modsTarget))) return renderModsChooser();
   const p = modsTarget === '*' ? null : profile();
-  content.innerHTML = `<h2>Modrinth <small>${p ? 'Ziel: ' + esc(p.name) + ' (' + esc(p.mcVersion) + ', ' + esc(LOADERS[p.loader]) + ')' : 'Kein Profil gewählt – Modpacks erstellen ein eigenes'}</small></h2>
+  content.innerHTML = `<h2><select id="prov" style="font:inherit;font-weight:700;background:transparent;color:inherit;border:0;cursor:pointer"><option value="modrinth" ${mrState.provider === 'modrinth' ? 'selected' : ''}>Modrinth</option><option value="curseforge" ${mrState.provider === 'curseforge' ? 'selected' : ''}>CurseForge</option></select> <small>${p ? 'Ziel: ' + esc(p.name) + ' (' + esc(p.mcVersion) + ', ' + esc(LOADERS[p.loader]) + ')' : 'Kein Profil gewählt – Modpacks erstellen ein eigenes'}</small></h2>
     <div class="tabs">${Object.entries(MR_TABS).map(([k, v]) => `<div class="tab ${k === mrState.type ? 'active' : ''}" data-t="${k}">${v}</div>`).join('')}</div>
     <div class="row" style="margin-bottom:14px"><input id="q" style="flex:1" placeholder="Suchen…" value="${esc(mrState.query)}"><label class="row mute"><input type="checkbox" id="flt" checked style="min-width:0"> Nur kompatibel</label><button class="b primary" id="go">Suchen</button></div>
     <div class="mr"><div id="hits"></div><div><h2 style="font-size:13px">Installiert</h2><div class="card" id="inst" style="padding:6px"></div></div></div>`;
@@ -421,7 +421,8 @@ async function renderMods() {
       } finally { b.disabled = false; b.textContent = 'Updates prüfen'; }
     });
   }
-  $('#go').onclick = search; $('#q').onkeydown = (e) => e.key === 'Enter' && search();
+  $('#prov').onchange = () => { mrState.provider = $('#prov').value; mrState.query = $('#q').value; renderMods(); };
+  $('#go').onclick = () => search(); let qt = 0; $('#q').onkeydown = (e) => { if (e.key === 'Enter') { clearTimeout(qt); search(); } }; $('#q').oninput = () => { clearTimeout(qt); qt = setTimeout(() => search(), 450); };
   renderInstalled();
   search();
 }
@@ -440,9 +441,10 @@ async function renderInstalled() {
 const search = guard(async () => {
   const p = profile(); const hitsEl = $('#hits'); if (!hitsEl) return;
   mrState.query = $('#q').value;
-  hitsEl.innerHTML = '<div class="empty">Lade…</div>';
+  hitsEl.innerHTML = '<div class="empty">Lade…</div>'; const my = ++mrSeq, cfm = mrState.provider === 'curseforge';
   const filter = $('#flt').checked && p && mrState.type !== 'modpack';
-  const res = await api('modrinth:search', { query: mrState.query, type: mrState.type, mcVersion: filter ? p.mcVersion : '', loader: filter ? p.loader : '' });
+  const res = await api(cfm ? 'cf:search' : 'modrinth:search', { query: mrState.query, type: mrState.type, mcVersion: filter ? p.mcVersion : '', loader: filter ? p.loader : '' });
+  if (my !== mrSeq) return;   // veraltete Antwort (neuere Suche laeuft schon)
   hitsEl.innerHTML = res.hits.length ? '' : '<div class="empty">Keine Treffer.</div>';
   for (const h of res.hits) {
     const d = document.createElement('div'); d.className = 'hit';
@@ -451,8 +453,8 @@ const search = guard(async () => {
     btn.onclick = guard(async () => {
       btn.disabled = true; btn.textContent = '…';
       try {
-        if (mrState.type === 'modpack') { S = await api('modrinth:installModpack', h.project_id); renderChrome(); toast(`Modpack „${h.title}“ als Profil angelegt.`); }
-        else { const r = await api('modrinth:install', p?.id, h.project_id, mrState.type); S = await api('state:get'); toast('Installiert: ' + r.names.join(', ')); renderInstalled(); }
+        if (mrState.type === 'modpack') { S = await api(cfm ? 'cf:installModpack' : 'modrinth:installModpack', h.project_id); renderChrome(); toast(`Modpack „${h.title}“ als Profil angelegt.`); }
+        else { const r = await api(cfm ? 'cf:install' : 'modrinth:install', p?.id, h.project_id, mrState.type); S = await api('state:get'); toast('Installiert: ' + r.names.join(', ')); renderInstalled(); }
         btn.textContent = '✓';
       } catch (e) { btn.disabled = false; btn.textContent = 'Erneut'; throw e; }
     });
@@ -875,7 +877,8 @@ function renderSettings() {
     <div class="card"><b>Updates &amp; Meldungen</b><small class="mute" style="display:block;margin:6px 0 10px" id="feedSt">Installiert: v${esc(appVersion || '?')}</small>
       <div class="row"><button class="b" id="feedChk">Jetzt prüfen</button></div></div>
 ${S.admin ? `<div class="card"><b>Cloud-Adresse (nur Admin)</b><small class="mute" style="display:block;margin:6px 0 10px">Adresse deines Cloudflare-Workers (steht nach worker/deploy.bat im Fenster, oder in Cloudflare unter Workers &amp; Pages → rift-cosmetics). „Für alle speichern“ gilt für alle Spieler und bleibt nach Updates erhalten.</small>
-      <div class="row"><input id="capi" placeholder="https://rift-cosmetics.name.workers.dev" value="${esc(S.settings.cosmeticsApi || S.cloudApi || '')}" style="flex:1"><button class="b primary" id="capiGo">Für alle speichern</button></div></div>` : ''}
+      <div class="row"><input id="capi" placeholder="https://rift-cosmetics.name.workers.dev" value="${esc(S.settings.cosmeticsApi || S.cloudApi || '')}" style="flex:1"><button class="b primary" id="capiGo">Für alle speichern</button></div>
+      <small class="mute" style="display:block;margin:10px 0 6px">CurseForge-API-Key (kostenlos auf console.curseforge.com) – für die CurseForge-Suche im Mods-Tab.</small><div class="row"><input id="cfk" placeholder="$2a$10$…" value="${esc(S.cfKey || '')}" style="flex:1"></div></div>` : ''}
     <div class="card" id="refCard"><b>Freunde einladen</b><small class="mute" style="display:block;margin:6px 0 10px">Teile deinen Code: Neue Spieler und du bekommen je 300 Coins (Bonus bei 3 und 10 Einladungen).</small>
       <div class="row"><b id="refCode" class="refcode">…</b><button class="b mini" id="refCopy">Kopieren</button><button class="b mini primary" id="refClaim" style="display:none"></button></div>
       <small class="mute" id="refInfo" style="display:block;margin:8px 0"></small>
@@ -917,7 +920,7 @@ ${S.admin ? `<div class="card"><b>Cloud-Adresse (nur Admin)</b><small class="mut
     $('#feedSt').innerHTML = `Installiert: v${esc(r.appVersion)} · ${esc(r.info.text)}${r.info.repo ? ' · ' + esc(r.info.repo) + '@' + esc(r.info.branch) : ''}<br>` + (u ? `Neuestes Update im Feed: v${esc(String(u.version).replace(/^v/, ''))} – ${isNewer(u.version, r.appVersion) ? 'NEUER als deine Version (Popup erscheint)' : 'nicht neuer als deine Version (kein Popup)'}` : 'Kein Update im Feed.');
     pollFeed(); });
   api('overlay:get').then((o) => { const e = $('#ovl'); if (e) e.checked = o.cfg.enabled; }).catch(() => {});
-  if ($('#capiGo')) $('#capiGo').onclick = guard(async () => { const v = $('#capi').value.trim(); const o = await api('admin:setCloud', v); S = await api('settings:save', { cosmeticsApi: o.api }); toast('Cloud-Adresse für alle gespeichert.'); });
+  if ($('#capiGo')) $('#capiGo').onclick = guard(async () => { const v = $('#capi').value.trim(); const o = await api('admin:setCloud', v, $('#cfk').value.trim()); S = await api('settings:save', { cosmeticsApi: o.api }); toast('Cloud-Adresse für alle gespeichert.'); });
   $('#saveS').onclick = guard(async () => { await api('overlay:set', { enabled: $('#ovl').checked }); S = await api('settings:save', { ram: +$('#ram').value, javaPath: $('#java').value.trim(), closeOnLaunch: $('#min').checked, fullscreen: $('#fs').checked}); toast('Gespeichert.'); });
 }
 
@@ -1019,7 +1022,7 @@ async function pollFeed() {
     const pill = $('#updPill');
     if (upd) { pill.style.display = ''; pill.textContent = '⬆ Update v' + String(upd.version).replace(/^v/, ''); pill.onclick = () => showAnnouncement(upd); } else pill.style.display = 'none';
     if (before !== JSON.stringify(feed.map((a) => a.id)) && view === 'play') renderPlay();
-    window.cdUpdate && cdUpdate(r.announcements);
+    window.cdUpdate && cdUpdate(r.announcements, r.upcoming);
     showNextAnnouncement();
   } catch {}
   pollT = setTimeout(pollFeed, feed.some((a) => a.type === 'maintenance') ? 30e3 : 60e3);

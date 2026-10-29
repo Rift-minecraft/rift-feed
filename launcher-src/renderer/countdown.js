@@ -1,7 +1,7 @@
 /* Countdowns (Admin): 1 = nicht schließbar, 2 = schließbar + kleine Anzeige oben rechts, 3 = Update-/Release-Countdown */
 (() => {
   let list = [], closed = new Set(); try { closed = new Set(JSON.parse(localStorage.getItem('cdClosed') || '[]')); } catch {}
-  let shown = null, timer = 0;
+  let shown = null, timer = 0, upcoming = [];
   const pad = (n) => String(Math.max(0, n)).padStart(2, '0');
   const parts = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return { d: Math.floor(s / 86400), h: Math.floor(s / 3600) % 24, m: Math.floor(s / 60) % 60, s: s % 60 }; };
   const short = (ms) => { const p = parts(ms); return p.d ? `${p.d}T ${pad(p.h)}:${pad(p.m)}` : `${pad(p.h)}:${pad(p.m)}:${pad(p.s)}`; };
@@ -37,6 +37,12 @@
       }
       const en = document.getElementById('cdEnd'); if (en) en.textContent = new Date(cur.endsAt).toLocaleString('de-DE', { dateStyle: 'full', timeStyle: 'short' }) + ' Uhr';
     }
+    // Geplantes Update in < 24 h: kleiner Countdown oben (automatisch)
+    const upA = upcoming.find((a) => new Date(a.startsAt).getTime() > now); let uc = document.getElementById('cdUpd');
+    if (upA) {
+      if (!uc) { uc = document.createElement('div'); uc.id = 'cdUpd'; uc.className = 'pill cdchip'; const ref = document.getElementById('offPill') || document.getElementById('coinPill'); if (ref) ref.parentNode.insertBefore(uc, ref); }
+      uc.title = 'Geplantes Update v' + upA.version + (upA.beta ? ' (Beta)' : ''); uc.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg><b>v${esc(upA.version)} in ${short(new Date(upA.startsAt).getTime() - now)}</b>`;
+    } else if (uc) uc.remove();
     // Chip oben rechts für geschlossene (nicht-gesperrte) Countdowns
     const chipA = act.find((a) => a.mode !== 'locked' && closed.has(a.id) && new Date(a.endsAt).getTime() > now);
     let chip = document.getElementById('cdChip');
@@ -46,5 +52,5 @@
       chip.onclick = () => { closed.delete(chipA.id); save(); tick(); };
     } else if (chip) chip.remove();
   }
-  window.cdUpdate = (announcements) => { list = (announcements || []).filter((a) => a.type === 'countdown'); tick(); clearInterval(timer); if (list.length) timer = setInterval(tick, 1000); };
+  window.cdUpdate = (announcements, up) => { list = (announcements || []).filter((a) => a.type === 'countdown'); upcoming = up || []; tick(); clearInterval(timer); if (list.length || upcoming.length) timer = setInterval(tick, 1000); };
 })();

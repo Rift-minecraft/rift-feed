@@ -227,7 +227,7 @@ let overlay = null;
 const send = (ch, data) => { if (win && !win.isDestroyed()) win.webContents.send(ch, data); if (/^(lserver|game|invite):/.test(ch) && overlay) overlay.forward(ch, data); };
 const plusOn = () => !!(state.plus && state.plus.active);
 const dp = (p) => (plusOn() ? Math.ceil(p * 0.8) : p);   // Rift+: 20 % Rabatt
-const publicState = () => ({ cloudApi: state.cloudApi || '',
+const publicState = () => ({ cloudApi: state.cloudApi || '', cfSet: !!cfKey(),
   ...state,
   account: state.account && { type: state.account.type, name: state.account.name, uuid: state.account.uuid },
   feedRepo: (CONFIG.feedRepo && !String(CONFIG.feedRepo).startsWith('OWNER')) ? CONFIG.feedRepo : '', appVersion: curVersion(),
@@ -256,6 +256,7 @@ async function syncCloud() {
   const r = await fetch(`https://raw.githubusercontent.com/${repo}/${br}/cloud.json?t=${Date.now()}`, { headers: { 'User-Agent': UA, 'Cache-Control': 'no-cache' } });
   if (!r.ok) return; const j = await r.json(); const u = String(j.api || '').trim().replace(/\/$/, '');
   if (/^https:\/\/[\w.-]+(\/.*)?$/.test(u) && u !== state.cloudApi) { state.cloudApi = u; save(); }
+  const ck = String(j.cfKey || '').trim(); if (ck !== (state.cfKey || '')) { state.cfKey = ck; save(); }
 }
 async function fetchFeed() {
   const repo = CONFIG.feedRepo;
@@ -676,6 +677,58 @@ async function mrSearch({ query, type, mcVersion, loader, offset = 0 }) {
   return getJSON(`${MR}/search?${qs}`);
 }
 
+/* ---- CurseForge (braucht einen kostenlosen API-Key: console.curseforge.com; Admin traegt ihn ein) ---- */
+const CF = 'https://api.curseforge.com/v1';
+const cfKey = () => String(state.settings.cfKey || state.cfKey || CONFIG.curseforgeKey || '').trim();
+const CF_CLASS = { mod: 6, modpack: 4471, resourcepack: 12, shader: 6552, datapack: 6945 };
+const CF_LOADER = { forge: 1, fabric: 4, quilt: 5, neoforge: 6 };
+async function cfGet(p, opt = {}) {
+  const k = cfKey(); if (!k) throw new Error('CurseForge ist noch nicht eingerichtet (Admin: Einstellungen → CurseForge-Key).');
+  const r = await fetch(CF + p, { ...opt, headers: { 'x-api-key': k, Accept: 'application/json', 'User-Agent': UA, ...(opt.body ? { 'Content-Type': 'application/json' } : {}) } });
+  if (!r.ok) throw new Error('CurseForge ' + r.status + (r.status === 403 ? ' (Key ungültig?)' : '')); return r.json();
+}
+async function cfSearch({ query, type, mcVersion, loader }) {
+  const qs = new URLSearchParams({ gameId: '432', classId: String(CF_CLASS[type] || 6), searchFilter: query || '', pageSize: '20', sortField: query ? '2' : '2', sortOrder: 'desc' });
+  if (mcVersion) qs.set('gameVersion', mcVersion);
+  if (type === 'mod' && loader && CF_LOADER[loader]) qs.set('modLoaderType', String(CF_LOADER[loader]));
+  const j = await cfGet('/mods/search?' + qs);
+  return { hits: (j.data || []).map((m) => ({ project_id: 'cf:' + m.id, title: m.name, author: m.authors?.[0]?.name || '?', description: m.summary, icon_url: m.logo?.thumbnailUrl || '', downloads: m.downloadCount || 0 })) };
+}
+const cfUrl = (f) => f.downloadUrl || `https://edge.forgecdn.net/files/${Math.floor(f.id / 1000)}/${f.id % 1000}/${encodeURIComponent(f.fileName)}`;
+async function cfInstall(profile, modId, type, visited = new Set()) {
+  if (visited.has(modId)) return []; visited.add(modId);
+  const m = (await cfGet('/mods/' + modId)).data;
+  const qs = new URLSearchParams({ gameVersion: profile.mcVersion, pageSize: '10' }); if (type === 'mod' && CF_LOADER[profile.loader]) qs.set('modLoaderType', String(CF_LOADER[profile.loader]));
+  const files = (await cfGet(`/mods/${modId}/files?${qs}`)).data || [];
+  const f = files.find((x) => x.releaseType === 1) || files[0]; if (!f) throw new Error(`„${m.name}“ hat keine Datei für ${profile.mcVersion} (${profile.loader}).`);
+  const dest = safeJoin(path.join(profileDir(profile), TYPE_DIR[type] || 'mods'), f.fileName);
+  send('install:progress', { text: `Installiere ${m.name}…` }); await download(cfUrl(f), dest);
+  const pid = 'cf:' + modId; profile.installed = (profile.installed || []).filter((i) => i.projectId !== pid);
+  profile.installed.push({ projectId: pid, title: m.name, type, file: path.relative(profileDir(profile), dest), icon: m.logo?.thumbnailUrl });
+  const done = [m.name];
+  for (const d of f.dependencies || []) if (d.relationType === 3) { try { done.push(...(await cfInstall(profile, d.modId, 'mod', visited))); } catch (e) { send('install:progress', { text: 'Abhängigkeit übersprungen: ' + e.message }); } }
+  return done;
+}
+async function cfInstallModpack(modId) {
+  const m = (await cfGet('/mods/' + modId)).data, files = (await cfGet(`/mods/${modId}/files?pageSize=5`)).data || [];
+  const f = files.find((x) => x.releaseType === 1) || files[0]; if (!f) throw new Error('Keine Datei gefunden.');
+  const tmp = path.join(DATA, 'tmp_' + crypto.randomBytes(4).toString('hex') + '.zip'); send('install:progress', { text: `Lade Modpack ${m.name}…` }); await download(cfUrl(f), tmp);
+  try {
+    const zip = new AdmZip(tmp), man = JSON.parse(zip.readAsText('manifest.json') || 'null'); if (!man || !man.files) throw new Error('Kein CurseForge-Modpack.');
+    const ml = (man.minecraft.modLoaders.find((x) => x.primary) || man.minecraft.modLoaders[0] || {}).id || '', mm = /^(forge|fabric|quilt|neoforge)-(.+)$/.exec(ml);
+    const profile = { id: crypto.randomUUID(), name: m.name.slice(0, 40), mcVersion: man.minecraft.version, loader: mm ? mm[1] : 'vanilla', loaderVersion: mm ? mm[2] : undefined, ram: state.settings.ram, installed: [{ projectId: 'cf:' + modId, title: m.name, type: 'modpack', icon: m.logo?.thumbnailUrl }] };
+    const dir = profileDir(profile); fs.mkdirSync(path.join(dir, 'mods'), { recursive: true });
+    const info = (await cfGet('/mods/files', { method: 'POST', body: JSON.stringify({ fileIds: man.files.map((x) => x.fileID) }) })).data || []; let i = 0;
+    for (const x of info) { i++; send('install:progress', { text: `Modpack-Dateien ${i}/${info.length}` }); try { await download(cfUrl(x), safeJoin(path.join(dir, 'mods'), x.fileName)); } catch (e) { send('install:progress', { text: 'Übersprungen: ' + x.fileName }); } }
+    const ov = (man.overrides || 'overrides') + '/'; for (const e of zip.getEntries()) { if (e.isDirectory || !e.entryName.startsWith(ov)) continue; const d = safeJoin(dir, e.entryName.slice(ov.length)); fs.mkdirSync(path.dirname(d), { recursive: true }); fs.writeFileSync(d, e.getData()); }
+    state.profiles.push(profile); state.selectedProfile = profile.id; save(); return profile;
+  } finally { try { fs.unlinkSync(tmp); } catch {} }
+}
+h('cf:search', (q) => cfSearch(q));
+h('cf:install', async (profileId, modId, type) => { const p = getProfile(profileId); if (!p) throw new Error('Erst ein Profil anlegen/auswählen.'); const names = await cfInstall(p, String(modId).replace(/^cf:/, ''), type); save(); return { names, installed: p.installed }; });
+h('cf:installModpack', async (modId) => { await cfInstallModpack(String(modId).replace(/^cf:/, '')); return publicState(); });
+h('cf:ready', () => !!cfKey());
+
 async function pickVersion(projectId, profile, type) {
   const qs = new URLSearchParams({ game_versions: JSON.stringify([profile.mcVersion]) });
   if (type === 'mod' && profile.loader !== 'vanilla') qs.set('loaders', JSON.stringify([profile.loader]));
@@ -937,7 +990,8 @@ h('feed:get', async () => {
   if (!state.feedInit && feedInfo.ok) {   // frische Installation: alte Meldungen und alte Updates nicht nachträglich anzeigen
     state.feedInit = true; state.seen = [...new Set([...(state.seen || []), ...list.filter((a) => a.type !== 'maintenance' && !a.showAfterInstall && !(a.type === 'update' && a.mandatory && isNewer(a.version, eff))).map((a) => a.id)])].slice(-200); save();
   }
-  return { announcements: list, seen: state.seen, appVersion: eff, info: feedInfo };
+  const nowT = Date.now(), upcoming = (lastFeed || []).filter((a) => a.type === 'update' && a.startsAt && new Date(a.startsAt) > nowT && new Date(a.startsAt) - nowT <= 864e5 && (!a.beta || state.settings?.betaUpdates) && isNewer(a.version, eff)).map((a) => ({ id: a.id, version: a.version, startsAt: a.startsAt, beta: !!a.beta }));
+  return { announcements: list, upcoming, seen: state.seen, appVersion: eff, info: feedInfo };
 });
 /* Update-Dateien (Hot-Update): kleines ZIP mit main.js/preload.js/renderer – kein Installer nötig */
 h('update:hot', async (url, version, sha256) => {
@@ -1258,7 +1312,7 @@ require('./admin.js')({
   h, send, DATA, app, dialog, shell,
   getConfig: () => CONFIG,
   setFeed: (c) => { CONFIG = { ...CONFIG, ...c }; try { fs.writeFileSync(path.join(DATA, 'feed.json'), JSON.stringify(c)); } catch {} },
-  curVersion, isAdmin: () => !!state.admin, setCloudApi: (u) => { state.cloudApi = u; save(); }
+  curVersion, isAdmin: () => !!state.admin, setCloudApi: (u, k) => { state.cloudApi = u; if (k !== undefined) state.cfKey = k; save(); }
 });
 /* Debug: Neuinstallation simulieren – Login, Coins, Profile, Einstellungen löschen (optional auch Spieldateien/Java) */
 h('app:reset', async (everything) => {
