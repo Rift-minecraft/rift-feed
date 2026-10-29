@@ -1,0 +1,7 @@
+{
+  "feedRepo": "Rift-minecraft/rift-feed",
+  "branch": "main",
+  "file": "announcements.json",
+  "cosmeticsApi": "https://rift-cosmetics.albertvogel218.workers.dev",
+  "modRepo": "Rift-minecraft/rift-launcher"
+}
