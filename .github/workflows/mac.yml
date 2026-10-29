@@ -1,0 +1,25 @@
+name: mac
+on:
+  workflow_dispatch:
+  push:
+    paths: ['launcher-src/**', '.github/workflows/mac.yml']
+permissions:
+  contents: write
+jobs:
+  dmg:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Build dmg (arm64 + x64)
+        working-directory: launcher-src
+        env: { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }
+        run: |
+          npm install
+          npx electron-builder --mac dmg --arm64 --x64
+      - name: Upload to release mac-latest
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          gh release view mac-latest >/dev/null 2>&1 || gh release create mac-latest --title "Rift Launcher for Mac" --notes "Unsigned .dmg builds (arm64 + Intel). Right-click the app -> Open on first start."
+          gh release upload mac-latest launcher-src/dist/*.dmg --clobber
