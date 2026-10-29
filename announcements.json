@@ -1,6 +1,19 @@
 {
   "announcements": [
     {
+      "id": "mvu0eagtjpa3",
+      "type": "update",
+      "title": "Rift Launcher 2.5.5 ist da!",
+      "message": "zu faul einen changelog zu schreiben :D",
+      "link": "https://github.com/Rift-minecraft/rift-feed/releases/download/v2.5.5/rift-update-2.5.5.zip",
+      "version": "2.5.5",
+      "mandatory": false,
+      "hot": true,
+      "sha256": "8975602e4fd14b64259efcd90a134c20d4b20ffcb015f0f78484dfe200a3618a",
+      "startsAt": "2026-10-29T20:45:00.000Z",
+      "createdAt": "2026-10-29T20:41:54.557Z"
+    },
+    {
       "id": "mvsja9tl55rs",
       "type": "update",
       "title": "Rift Launcher 2.5.3 ist da!",
