@@ -3,6 +3,9 @@ package de.rift.mod.ui;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.client.gui.screens.GenericMessageScreen;
 import net.minecraft.client.gui.screens.LevelLoadingScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -11,6 +14,27 @@ import net.minecraft.client.gui.screens.Screen;
 public final class RiftJoinAnim {
     private static long start, lastSeen, exitAt; private static boolean active, exiting;
     private RiftJoinAnim() {}
+    private static boolean sndStart, sndExit;
+    private static void snd(Minecraft mc, int which, float pitch) {
+        try { if (which == 0) mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_TOAST_IN, pitch)); else mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.AMETHYST_BLOCK_CHIME, pitch)); } catch (Throwable ignored) {}
+    }
+
+    /** Sonderfall: der Server verlangt ein Ressourcenpaket (Bestaetigungs-Dialog waehrend des Beitritts) -> animiertes Paket oben, Buttons bleiben benutzbar. */
+    private static void drawPack(GuiGraphics g, Minecraft mc, Screen s) {
+        String ti = String.valueOf(s.getTitle().getString()).toLowerCase();
+        if (!(ti.contains("pack") || ti.contains("paket") || ti.contains("ressourcen") || ti.contains("resource"))) return;
+        RiftConfig c = RiftConfig.get(); float t = (System.currentTimeMillis() % 100000) / 1000f; int cx = g.guiWidth() / 2, cy = 34;
+        double bob = Math.sin(t * 3) * 3, p = (t * 0.9) % 1.0;
+        for (int i = 3; i >= 1; i--) disc(g, cx, cy, 12 + i * 7 + 2 * Math.sin(t * 2), RiftDraw.argb(c.accent, 14));
+        int y0 = cy + (int) bob;
+        g.fill(cx - 10, y0 - 8, cx + 10, y0 + 10, RiftDraw.argb(0xD9A066, 255));          // Paket-Karton
+        g.fill(cx - 10, y0 - 8, cx + 10, y0 - 3, RiftDraw.argb(0xB07D45, 255));
+        g.fill(cx - 2, y0 - 8, cx + 2, y0 + 10, RiftDraw.argb(0xFFFFFF, 220));            // Band
+        int ay = y0 - 22 + (int) (p * 12);                                                // fallender Pfeil (Download)
+        g.fill(cx - 1, ay - 6, cx + 2, ay, RiftDraw.argb(c.accent, (int) (255 * (1 - p))));
+        for (int i = 0; i < 4; i++) g.fill(cx - 3 + i, ay + i, cx + 5 - i, ay + i + 1, RiftDraw.argb(c.accent, (int) (255 * (1 - p))));
+        String lab = "Ressourcenpaket vom Server"; RiftDraw.text(g, lab, cx - RiftDraw.width(lab) / 2, cy + 20, 0x9CA3AF);
+    }
 
     public static boolean isJoin(Minecraft mc, Screen s) {
         return s instanceof ConnectScreen || s instanceof LevelLoadingScreen || (s instanceof GenericMessageScreen && mc.level == null);
@@ -33,9 +57,12 @@ public final class RiftJoinAnim {
     /** Wird nach jedem Screen gezeichnet (Mixin). Deckt den Standard-Text in der Mitte komplett ab. */
     public static void drawScreen(GuiGraphics g, Minecraft mc, Screen s) {
         RiftConfig c = RiftConfig.get();
-        if (!c.joinAnim || !isJoin(mc, s)) return;
+        if (!c.joinAnim) return;
+        if (s instanceof ConfirmScreen && mc.level == null) { drawPack(g, mc, s); return; }
+        if (!isJoin(mc, s)) return;
         long now = System.currentTimeMillis();
-        if (!active || exiting || now - lastSeen > 1500) { active = true; exiting = false; start = now; }
+        if (!active || exiting || now - lastSeen > 1500) { active = true; exiting = false; start = now; sndStart = false; sndExit = false; }
+        if (!sndStart) { sndStart = true; snd(mc, 0, 1.2f); }
         lastSeen = now;
         float t = (now - start) / 1000f; int W = g.guiWidth(), H = g.guiHeight(), cx = W / 2, cy = H / 2 - 8;
         int bg = (int) (255 * Math.min(1f, t / 0.2f));
@@ -63,7 +90,7 @@ public final class RiftJoinAnim {
         if (!active) return;
         Screen s = mc.screen; if (s != null && isJoin(mc, s)) return;
         if (!RiftConfig.get().joinAnim || mc.player == null || mc.level == null) { active = false; exiting = false; return; }
-        long now = System.currentTimeMillis(); if (!exiting) { exiting = true; exitAt = now; }
+        long now = System.currentTimeMillis(); if (!exiting) { exiting = true; exitAt = now; if (!sndExit) { sndExit = true; snd(mc, 1, 1.0f); } }
         float k = (now - exitAt) / 750f; if (k >= 1f) { active = false; exiting = false; return; }
         double e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
         int W = g.guiWidth(), H = g.guiHeight(), cx = W / 2, cy = H / 2 - 8; double maxR = Math.hypot(W, H) / 2 + 4, r = 36 + (maxR - 36) * e;
