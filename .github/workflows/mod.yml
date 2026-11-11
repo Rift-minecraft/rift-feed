@@ -60,6 +60,11 @@ jobs:
               echo "=== $c"; javap -p -cp "$j" $c 2>&1 | head -900
             done
           done > inspect.txt 2>&1 || true
+          for j in $J; do
+            for c in net.minecraft.network.protocol.status.ServerStatus net.minecraft.network.protocol.status.ServerStatus\$Players net.minecraft.network.protocol.status.ServerStatus\$Version net.minecraft.server.network.ServerStatusPacketListenerImpl net.minecraft.network.protocol.status.ClientboundStatusResponsePacket net.minecraft.network.chat.Style net.minecraft.network.chat.MutableComponent; do echo "=== $c"; javap -p -cp "$j" $c 2>&1 | head -120; done
+            echo "=== MinecraftServer(status)"; javap -p -cp "$j" net.minecraft.server.MinecraftServer 2>&1 | grep -i "status\|motd"
+            echo "=== DedicatedServer"; javap -p -cp "$j" net.minecraft.server.dedicated.DedicatedServer 2>&1 | grep -i "status\|motd"
+          done >> inspect.txt 2>&1 || true
       - name: Diagnose veroeffentlichen
         if: always()
         run: |
