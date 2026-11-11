@@ -1,0 +1,103 @@
+name: Rift-QuickJoin-Server-Mod bauen
+on:
+  workflow_dispatch:
+  push:
+    paths: ['server-src/**', '.github/workflows/server.yml']
+permissions:
+  contents: write
+jobs:
+  fabric:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mc: ['1.21.11']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 25 }
+      - name: Fabric-Vorlage für ${{ matrix.mc }} holen (liefert die passenden Versionen)
+        run: git clone --depth 1 --branch ${{ matrix.mc }} https://github.com/FabricMC/fabric-example-mod tpl
+      - name: Rift-Code einsetzen
+        run: |
+          cd tpl
+          rm -rf src
+          mkdir -p src/main/java src/main/resources
+          cp -r ../server-src/common/java/* src/main/java/
+          cp -r ../server-src/fabric/java/* src/main/java/
+          cp -r ../server-src/fabric/resources/* src/main/resources/
+          # Offizielle Mojang-Namen verwenden (der Code nutzt diese)
+          sed -i -E 's/^(\s*)mappings .*/\1mappings loom.officialMojangMappings()/' build.gradle
+          # Vorlage trennt evtl. Client/Server-Quellen: aufheben, damit alles in src/main liegt
+          sed -i -E '/splitEnvironmentSourceSets\(\)/d' build.gradle
+          # Mod-Block der Vorlage (referenziert sourceSets.client) entfernen
+          python3 - <<'PY'
+          import re
+          s=open('build.gradle').read()
+          s=re.sub(r'\n\s*mods\s*\{.*?\n\s*\}\n\s*\}', '\n', s, flags=re.S) if 'sourceSets.client' in s else s
+          open('build.gradle','w').write(s)
+          PY
+          echo "mod_version=1.0.0" >> gradle.properties
+          sed -i -E 's/^archives_base_name=.*/archives_base_name=rift-quickjoin-${{ matrix.mc }}-fabric/' gradle.properties
+          sed -i -E 's/^mod_version=.*/mod_version=1.0.0/' gradle.properties
+          cat build.gradle
+      - name: Bauen
+        run: |
+          cd tpl
+          chmod +x gradlew
+          ./gradlew build --no-daemon > ../build.log 2>&1 || {
+            python3 -c "import sys;t=open('../build.log',errors='replace').read()[-6000:];print('::error title=Gradle-Fehler::'+t.replace('%','%25').replace('\r','').replace('\n','%0A'))"
+            exit 1
+          }
+      - name: Release "qj-latest" aktualisieren
+        env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+        run: |
+          JAR=$(ls tpl/build/libs/*.jar | grep -v -- '-sources' | head -1)
+          cp "$JAR" rift-quickjoin-${{ matrix.mc }}-fabric.jar
+          gh release view qj-latest >/dev/null 2>&1 || gh release create qj-latest --title "Rift Quick Join (automatisch)" --notes "Wird automatisch gebaut."
+          gh release upload qj-latest rift-quickjoin-${{ matrix.mc }}-fabric.jar --clobber
+      - uses: actions/upload-artifact@v4
+        with: { name: 'rift-quickjoin-${{ matrix.mc }}-fabric', path: 'rift-quickjoin-${{ matrix.mc }}-fabric.jar' }
+
+  neoforge:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mc: ['1.21.11']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - name: NeoForge-Vorlage holen
+        run: git clone --depth 1 https://github.com/NeoForgeMDKs/MDK-${{ matrix.mc }}-ModDevGradle tpl
+      - name: Rift-Code einsetzen
+        run: |
+          cd tpl
+          rm -rf src
+          mkdir -p src/main/java src/main/resources src/main/templates
+          cp -r ../server-src/common/java/* src/main/java/
+          cp -r ../server-src/neoforge/java/* src/main/java/
+          cp -r ../server-src/neoforge/resources/* src/main/resources/
+          cp -r ../server-src/neoforge/templates/* src/main/templates/
+          sed -i -E 's/^mod_id=.*/mod_id=riftquickjoin/; s/^mod_name=.*/mod_name=Rift Quick Join/; s/^mod_group_id=.*/mod_group_id=de.rift.qj/' gradle.properties
+          sed -i -E "s/^\s*archivesName = .*/    archivesName = 'rift-quickjoin-${{ matrix.mc }}-neoforge'/" build.gradle
+          sed -i -E 's/^org.gradle.configuration-cache=.*/org.gradle.configuration-cache=false/' gradle.properties
+          sed -i '/downloadSources/d;/downloadJavadoc/d' build.gradle
+      - name: Bauen
+        run: |
+          cd tpl
+          chmod +x gradlew
+          ./gradlew build --no-daemon > ../build.log 2>&1 || {
+            python3 -c "import sys;t=open('../build.log',errors='replace').read()[-6000:];print('::error title=Gradle-Fehler::'+t.replace('%','%25').replace('\r','').replace('\n','%0A'))"
+            exit 1
+          }
+      - name: Release "qj-latest" aktualisieren
+        env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+        run: |
+          JAR=$(ls tpl/build/libs/*.jar | grep -v -- '-sources' | head -1)
+          cp "$JAR" rift-quickjoin-${{ matrix.mc }}-neoforge.jar
+          gh release view qj-latest >/dev/null 2>&1 || gh release create qj-latest --title "Rift Quick Join (automatisch)" --notes "Wird automatisch gebaut."
+          gh release upload qj-latest rift-quickjoin-${{ matrix.mc }}-neoforge.jar --clobber
+      - uses: actions/upload-artifact@v4
+        with: { name: 'rift-quickjoin-${{ matrix.mc }}-neoforge', path: 'rift-quickjoin-${{ matrix.mc }}-neoforge.jar' }

@@ -1,0 +1,7 @@
+{
+  "required": false,
+  "package": "de.rift.qj",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["QjStatusMixin"],
+  "injectors": { "defaultRequire": 0 }
+}

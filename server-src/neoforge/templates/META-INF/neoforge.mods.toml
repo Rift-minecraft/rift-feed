@@ -1,0 +1,22 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="All Rights Reserved"
+[[mixins]]
+config="riftqj.mixins.json"
+[[mods]]
+modId="riftquickjoin"
+version="1.0.0"
+displayName="Rift Quick Join"
+description='''Lets the Rift Launcher join this server with one click.'''
+[[dependencies.riftquickjoin]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${neo_version},)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.riftquickjoin]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "riftquickjoin",
+  "version": "${version}",
+  "name": "Rift Quick Join",
+  "description": "Lets the Rift Launcher join this server with one click: it reads the server's mod list (no join needed) and sets up a matching profile.",
+  "authors": ["Rift"],
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": { "main": ["de.rift.qj.QjFabric"] },
+  "mixins": ["riftqj.mixins.json"],
+  "depends": { "fabricloader": ">=0.15.0", "minecraft": "~1.21.11", "java": ">=21" }
+}
