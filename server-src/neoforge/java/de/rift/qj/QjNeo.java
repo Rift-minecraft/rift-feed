@@ -13,7 +13,7 @@ import net.neoforged.neoforgespi.language.IModInfo;
 public class QjNeo {
     public QjNeo() {
         QuickJoin.LOADER = "neoforge";
-        try { QuickJoin.MC = net.minecraft.SharedConstants.getCurrentVersion().name(); } catch (Throwable t) { try { QuickJoin.MC = String.valueOf(net.minecraft.SharedConstants.getCurrentVersion().getName()); } catch (Throwable ignored) {} }
+        try { QuickJoin.MC = net.minecraft.SharedConstants.getCurrentVersion().name(); } catch (Throwable ignored) {}
         ModList.get().getModContainerById("neoforge").ifPresent((m) -> QuickJoin.LOADER_VERSION = m.getModInfo().getVersion().toString());
         QuickJoin.LISTER = () -> {
             List<QuickJoin.Entry> out = new ArrayList<>(); Set<String> skip = Set.of("minecraft", "neoforge", "riftquickjoin");
